@@ -85,6 +85,14 @@ scene.background = new THREE.Color(0x202428);
 scene.fog = new THREE.Fog(0x202428, 20, 60);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
+// Real-time scene reflection for polished metal (shared CubeCamera at booth centre).
+// The stainless ovens pick this up as their envMap so they mirror the surrounding props.
+const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+cubeRT.texture.mapping = THREE.CubeReflectionMapping;
+const cubeCam = new THREE.CubeCamera(0.1, 40, cubeRT);
+cubeCam.position.set(3, 1.2, 1.5); // booth centre, roughly eye height
+scene.add(cubeCam);
+
 // --- Camera ---
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
 camera.position.set(7, 6, 7);
@@ -320,12 +328,12 @@ const STORAGE_KEY = 'exhibition-booth-layout-v1';
 const DEFAULT_LAYOUT = {
   "light-1":   { "x": 5.2, "y": 2.8,   "z": 1.5, "ry":  0 },
   "light-2":   { "x": 2.1, "y": 2.7,   "z": 1.5, "ry":  0 },
-  "box-1":     { "x": 0.9, "y": 1.2,   "z": 0.8, "ry":  3.1416 },
-  "box-2":     { "x": 2.3, "y": 0.6,   "z": 0.7, "ry":  1.5708 },
+  "box-1":     { "x": 1.0, "y": 0,     "z": 0.9, "ry": 12.5664 },
+  "box-2":     { "x": 2.4, "y": 0,     "z": 0.8, "ry":  6.2832 },
   "box-3":     { "x": 4.3, "y": 0.307, "z": 0.4, "ry": -2.3562 },
   "box-4":     { "x": 4.0, "y": 0.307, "z": 1.4, "ry": -1.5708 },
   "console-1": { "x": 5.5, "y": 0,     "z": 1.5, "ry": -1.5708 },
-  "display-1": { "x": 0.5, "y": 0,     "z": 2.7, "ry":  0 },
+  "display-1": { "x": -0.2,"y": 0,     "z": 2.1, "ry":  0 },
   "display-2": { "x": 5.7, "y": 0,     "z": 2.7, "ry":  0.7854 },
   "human-1":   { "x": 1.0, "y": 0,     "z": 2.3, "ry":  3.927 },
   "tv-1":      { "x": 4.4, "y": 0,     "z": 2.5, "ry":  5.4978 },
@@ -353,6 +361,7 @@ function saveLayout() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 const savedLayout = loadLayout();
+console.log('[layout] loaded saved settings:', savedLayout);
 
 addPointLight(6, 2.5, 1.5, { id: 'light-1', intensity: 14 });
 addPointLight(2, 1.5, 1.5, { id: 'light-2', intensity: 18 });
@@ -406,10 +415,286 @@ function addBox({
   return mesh;
 }
 
-// First box at the booth corner (0,0)
-addBox({ id: 'box-1', w: 1, d: 1, h: 2.4, x: 0, z: 0 });
-// Second box next to the first
-addBox({ id: 'box-2', w: 1, d: 1, h: 1.2, x: 1, z: 0 });
+// --- SONIK-style industrial oven/machine (stainless with window, handles, logo) ---
+function addOven({ id, w = 1, d = 1, h = 2.4, x = 0, z = 0 } = {}) {
+  const group = new THREE.Group();
+  group.userData = { id, w, d, h, draggable: true };
+
+  const stainlessMat = new THREE.MeshPhysicalMaterial({
+    color: 0xdde2e6, metalness: 1.0, roughness: 0.22,
+    envMap: cubeRT.texture, envMapIntensity: 1.5,
+    clearcoat: 0.4, clearcoatRoughness: 0.15,
+  });
+  const darkMat  = new THREE.MeshStandardMaterial({ color: 0x17191b, roughness: 0.5, metalness: 0.55 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x2a2e33, roughness: 0.45, metalness: 0.6 });
+
+  // Main body
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), stainlessMat);
+  body.position.y = h / 2;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  group.add(body);
+
+  // --- Logo textures (SONIK, blue) ---
+  function makeLogoTex(vertical) {
+    const c = document.createElement('canvas');
+    if (vertical) { c.width = 256; c.height = 1024; }
+    else          { c.width = 512; c.height = 160;  }
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, c.width, c.height);
+    g.fillStyle = '#1e5cb2';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    if (vertical) {
+      g.save();
+      g.translate(c.width / 2, c.height / 2);
+      g.rotate(Math.PI / 2);
+      g.font = 'bold 130px system-ui, sans-serif';
+      g.fillText('SONIK', 0, 0);
+      g.restore();
+    } else {
+      g.font = 'bold 120px system-ui, sans-serif';
+      g.fillText('SONIK', c.width / 2, c.height / 2);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return t;
+  }
+
+  // Front SONIK logo near the top
+  const frontLogo = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.5, 0.14),
+    new THREE.MeshStandardMaterial({ map: makeLogoTex(false), transparent: true, alphaTest: 0.1 }),
+  );
+  frontLogo.position.set(-w / 4, h - 0.18, d / 2 + 0.002);
+  group.add(frontLogo);
+
+  // Vertical SONIK on the +X side face
+  const sideLogo = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.22, 0.9),
+    new THREE.MeshStandardMaterial({ map: makeLogoTex(true), transparent: true, alphaTest: 0.1 }),
+  );
+  sideLogo.position.set(w / 2 + 0.002, h * 0.6, 0);
+  sideLogo.rotation.y = Math.PI / 2;
+  group.add(sideLogo);
+
+  // --- Viewing window (frame + tinted glass + green readout) ---
+  const winW = 0.58, winH = 0.30;
+  const winY = h * 0.72;
+  const winFrame = new THREE.Mesh(new THREE.BoxGeometry(winW + 0.04, winH + 0.04, 0.025), frameMat);
+  winFrame.position.set(0, winY, d / 2 + 0.004);
+  winFrame.castShadow = true;
+  group.add(winFrame);
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0x1b2a2f, metalness: 0.3, roughness: 0.1,
+    transmission: 0.25, transparent: true, ior: 1.5, thickness: 0.01,
+    clearcoat: 1.0, clearcoatRoughness: 0.05,
+  });
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.015), glassMat);
+  glass.position.set(0, winY, d / 2 + 0.022);
+  group.add(glass);
+  // Green digital readout on the glass
+  const readout = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.14, 0.06),
+    new THREE.MeshStandardMaterial({ color: 0x0e2416, emissive: 0x33ff88, emissiveIntensity: 0.9, roughness: 0.3 }),
+  );
+  readout.position.set(-0.16, winY, d / 2 + 0.031);
+  group.add(readout);
+
+  // --- Recessed (sink-in) door on the front ---
+  // Illusion built from: a raised rim around the opening + the door sitting inside the rim.
+  const doorW = w * 0.82, doorH = h * 0.45;
+  const doorY = h * 0.33;
+  const rimT  = 0.03;        // rim thickness (how far the rim sticks out from the body)
+  const rimW  = 0.035;       // rim width (material around the opening)
+  const bodyFront = d / 2;
+  // 4 raised rim bars around the door
+  const rimBars = [
+    { w: doorW + 2 * rimW, h: rimW, x: 0, y: doorY + doorH / 2 + rimW / 2 },
+    { w: doorW + 2 * rimW, h: rimW, x: 0, y: doorY - doorH / 2 - rimW / 2 },
+    { w: rimW, h: doorH,            x: -doorW / 2 - rimW / 2, y: doorY },
+    { w: rimW, h: doorH,            x:  doorW / 2 + rimW / 2, y: doorY },
+  ];
+  for (const b of rimBars) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, rimT), frameMat);
+    bar.position.set(b.x, b.y, bodyFront + rimT / 2);
+    bar.castShadow = true;
+    group.add(bar);
+  }
+  // Door surface, sitting inside the rim and set back from the rim's front face
+  // (matches the stainless body so the rim is what creates the recessed look)
+  const door = new THREE.Mesh(new THREE.BoxGeometry(doorW - 0.01, doorH - 0.01, 0.008), stainlessMat);
+  door.position.set(0, doorY, bodyFront + 0.004);
+  door.castShadow = true;
+  door.receiveShadow = true;
+  group.add(door);
+
+  // Bottom control panel
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, 0.14, 0.02), frameMat);
+  panel.position.set(0, 0.18, d / 2 + 0.012);
+  group.add(panel);
+
+  // Castors (4 small wheels under the unit)
+  const castorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.5, metalness: 0.3 });
+  for (const cx of [-w / 2 + 0.08, w / 2 - 0.08]) {
+    for (const cz of [-d / 2 + 0.08, d / 2 - 0.08]) {
+      const castor = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.05, 16), castorMat);
+      castor.rotation.z = Math.PI / 2;
+      castor.position.set(cx, 0.035, cz);
+      castor.castShadow = true;
+      group.add(castor);
+    }
+  }
+
+  // Saved position — always anchor at floor (ignore saved.y from the old Mesh era)
+  const saved = savedLayout[id];
+  if (saved) {
+    group.position.set(saved.x, 0, saved.z);
+    group.rotation.y = saved.ry ?? 0;
+  } else {
+    group.position.set(x + w / 2, 0, z + d / 2);
+  }
+  scene.add(group);
+  furniture.push(group);
+  return group;
+}
+
+// Big oven at the booth corner (SONIK-style machine)
+addOven({ id: 'box-1', w: 1, d: 1, h: 2.4, x: 0, z: 0 });
+
+// --- Smaller chamber oven (oven2) — off-white body, traffic light, side port, door with handle ---
+function addOven2({ id, w = 1, d = 1, h = 1.2, x = 0, z = 0 } = {}) {
+  const group = new THREE.Group();
+  group.userData = { id, w, d, h, draggable: true };
+
+  const bodyMat   = new THREE.MeshStandardMaterial({ color: 0xd6d1c4, roughness: 0.55, metalness: 0.12 });
+  const accentMat = new THREE.MeshStandardMaterial({ color: 0xb3b0a7, roughness: 0.6,  metalness: 0.18 });
+  const frameMat  = new THREE.MeshStandardMaterial({ color: 0x2a2e33, roughness: 0.45, metalness: 0.6 });
+  const darkMat   = new THREE.MeshStandardMaterial({ color: 0x17191b, roughness: 0.5,  metalness: 0.55 });
+  const screenMat = new THREE.MeshStandardMaterial({ color: 0x0a0e18, emissive: 0x1f4f9e, emissiveIntensity: 0.45, roughness: 0.22 });
+
+  // Main body
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bodyMat);
+  body.position.y = h / 2;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  group.add(body);
+
+  // Thin accent strip on the +X side
+  const sidePanel = new THREE.Mesh(new THREE.BoxGeometry(0.008, h * 0.9, d * 0.9), accentMat);
+  sidePanel.position.set(w / 2 + 0.005, h * 0.5, 0);
+  group.add(sidePanel);
+
+  // --- Traffic-light stack tower ---
+  const towerX = -w * 0.28, towerZ = -d * 0.28;
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.05, 12), frameMat);
+  stem.position.set(towerX, h + 0.025, towerZ);
+  group.add(stem);
+  const lightColors = [0xff2e2e, 0xffd42a, 0x33cc55];
+  for (let i = 0; i < 3; i++) {
+    const lamp = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 0.06, 20),
+      new THREE.MeshStandardMaterial({
+        color: lightColors[i], emissive: lightColors[i], emissiveIntensity: 0.6, roughness: 0.3,
+      }),
+    );
+    lamp.position.set(towerX, h + 0.08 + i * 0.065, towerZ);
+    group.add(lamp);
+  }
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.025, 20), frameMat);
+  cap.position.set(towerX, h + 0.08 + 3 * 0.065 + 0.01, towerZ);
+  group.add(cap);
+
+  // --- Control panel with screen, upper-front-left ---
+  const panelFrame = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.17, 0.022), frameMat);
+  panelFrame.position.set(-w * 0.25, h - 0.17, d / 2 + 0.013);
+  group.add(panelFrame);
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.09), screenMat);
+  screen.position.set(-w * 0.25, h - 0.15, d / 2 + 0.026);
+  group.add(screen);
+  // Indicator LEDs beside the screen
+  for (let i = 0; i < 3; i++) {
+    const led = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.008, 0.008, 0.006, 10),
+      new THREE.MeshStandardMaterial({ color: lightColors[i], emissive: lightColors[i], emissiveIntensity: 0.9, roughness: 0.3 }),
+    );
+    led.rotation.x = Math.PI / 2;
+    led.position.set(-w * 0.25 + 0.11, h - 0.12 - i * 0.03, d / 2 + 0.028);
+    group.add(led);
+  }
+
+  // --- Front door with vertical handle ---
+  const doorW = w * 0.72, doorH = h * 0.72;
+  const doorY = h * 0.42;
+  const doorOffsetX = w * 0.06;
+  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.03, doorH + 0.03, 0.02), frameMat);
+  doorFrame.position.set(doorOffsetX, doorY, d / 2 + 0.005);
+  group.add(doorFrame);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.015), bodyMat);
+  door.position.set(doorOffsetX, doorY, d / 2 + 0.014);
+  group.add(door);
+  // Small sticker / badge on the door
+  const sticker = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.09, 0.06),
+    new THREE.MeshStandardMaterial({ color: 0x1e5cb2, roughness: 0.4 }),
+  );
+  sticker.position.set(doorOffsetX, doorY + doorH * 0.3, d / 2 + 0.023);
+  group.add(sticker);
+  // Vertical handle on the left side of the door
+  const handleH = doorH * 0.85;
+  const handleX = doorOffsetX - doorW / 2 - 0.03;
+  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.035, handleH, 0.05), darkMat);
+  handle.position.set(handleX, doorY, d / 2 + 0.035);
+  handle.castShadow = true;
+  group.add(handle);
+  for (const hy of [handleH / 2 - 0.02, -handleH / 2 + 0.02]) {
+    const clip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.03), frameMat);
+    clip.position.set(handleX, doorY + hy, d / 2 + 0.02);
+    group.add(clip);
+  }
+
+  // --- Circular port / flange on the right side ---
+  const flangeOuter = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.095, 0.095, 0.02, 32),
+    frameMat,
+  );
+  flangeOuter.rotation.z = Math.PI / 2;
+  flangeOuter.position.set(w / 2 + 0.012, h * 0.45, 0);
+  group.add(flangeOuter);
+  const flangeInner = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.062, 0.062, 0.014, 32),
+    darkMat,
+  );
+  flangeInner.rotation.z = Math.PI / 2;
+  flangeInner.position.set(w / 2 + 0.02, h * 0.45, 0);
+  group.add(flangeInner);
+
+  // --- Adjustable leveling feet (4 small pads) ---
+  for (const cx of [-w / 2 + 0.09, w / 2 - 0.09]) {
+    for (const cz of [-d / 2 + 0.09, d / 2 - 0.09]) {
+      const legStem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.06, 12), frameMat);
+      legStem.position.set(cx, 0.03, cz);
+      group.add(legStem);
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.015, 16), darkMat);
+      pad.position.set(cx, 0.008, cz);
+      group.add(pad);
+    }
+  }
+
+  const saved = savedLayout[id];
+  if (saved) {
+    group.position.set(saved.x, 0, saved.z);
+    group.rotation.y = saved.ry ?? 0;
+  } else {
+    group.position.set(x + w / 2, 0, z + d / 2);
+  }
+  scene.add(group);
+  furniture.push(group);
+  return group;
+}
+// Second oven (chamber-style) next to the first
+addOven2({ id: 'box-2', w: 1, d: 1, h: 1.8, x: 1, z: 0 });
 // Third box: 91 × 61.5 cm, depth 1 ft (~0.305 m) with portrait blue facade (1.5 m)
 addBox({ id: 'box-3', w: 0.91, d: 0.3048, h: 0.615, x: 2.2, z: 2.0, color: 0xffffff, metal: false, facadeH: 1.2 });
 // Fourth box: same size, placed behind box-3
@@ -1317,9 +1602,12 @@ window.addEventListener('resize', () => {
 
 // --- Loop ---
 const ROT_PER_SEC = Math.PI / 180; // 1°/s
+let reflectFrame = 0;
 function tick() {
   const dt = animClock.getDelta();
   for (const o of animatedItems) o.rotation.y += ROT_PER_SEC * dt;
+  // Refresh the scene reflection every other frame to keep cost reasonable.
+  if ((reflectFrame++ & 1) === 0) cubeCam.update(renderer, scene);
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
