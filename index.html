@@ -39,7 +39,7 @@
   <button id="view-front">Front</button>
   <button id="toggle-grid" class="active">Grid</button>
   <button id="toggle-ygrid">Y grid</button>
-  <button id="export-layout" title="Copy current layout JSON to clipboard">Export</button>
+  <button id="reset-layout" title="Clear saved layout and reload with defaults">Reset</button>
 </div>
 
 <script type="importmap">
@@ -1301,21 +1301,11 @@ yGridBtn.onclick = () => {
   yGridBtn.classList.toggle('active', yGrid.visible);
 };
 
-const exportBtn = document.getElementById('export-layout');
-exportBtn.onclick = async () => {
-  // Make sure the very latest positions are in localStorage, then read them back.
-  saveLayout();
-  const json = localStorage.getItem(STORAGE_KEY) || '{}';
-  const pretty = JSON.stringify(JSON.parse(json), null, 2);
-  try {
-    await navigator.clipboard.writeText(pretty);
-    const prev = exportBtn.textContent;
-    exportBtn.textContent = 'Copied ✓';
-    setTimeout(() => { exportBtn.textContent = prev; }, 1200);
-  } catch {
-    console.log('[layout]', pretty);
-    alert('Clipboard blocked — layout JSON printed to DevTools console.');
-  }
+const resetBtn = document.getElementById('reset-layout');
+resetBtn.onclick = () => {
+  if (!confirm('Clear saved layout and reload with the default positions?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
 };
 
 // --- Resize ---
