@@ -265,7 +265,22 @@ edges.position.set(ROOM_W / 2, 0.005, ROOM_D / 2);
 scene.add(edges);
 
 // --- Walls ---
+// Plain material for non-inner wall faces
 const wallMat = new THREE.MeshStandardMaterial({ color: 0x2f5fa8, roughness: 0.9 });
+// Mural texture — spans both inner wall faces so the image wraps around the corner.
+// Left half goes on the left wall (runs along Z); right half goes on the top-left
+// wall (runs along X); the seam is at the booth's inner corner (0,0,0).
+function makeWallMuralTex(offsetX) {
+  const t = new THREE.TextureLoader().load('assets/wall.jpeg');
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.wrapS = THREE.ClampToEdgeWrapping;
+  t.repeat.x = 0.5;
+  t.offset.x = offsetX;
+  return t;
+}
+const wallMatLeftInner    = new THREE.MeshStandardMaterial({ map: makeWallMuralTex(0),   roughness: 0.9 });
+const wallMatTopLeftInner = new THREE.MeshStandardMaterial({ map: makeWallMuralTex(0.5), roughness: 0.9 });
 
 function addWall(w, h, d, x, y, z) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
@@ -339,17 +354,22 @@ function addWall(w, h, d, x, y, z) {
   addFascia(new THREE.Vector3(poleX, yFasciaCenter, poleZ - fasciaLen / 2), Math.PI / 2);
 }
 
-// Left wall: runs along Z from 0 to 3, at X=0. Length along Z = LEFT_WALL_LEN.
-addWall(
-  WALL_T, WALL_H, LEFT_WALL_LEN,
-  WALL_T / 2, WALL_H / 2, LEFT_WALL_LEN / 2
-);
-
-// Top-left wall: runs along X from 0 to 3, at Z=0. Length along X = TOP_WALL_LEN.
-addWall(
-  TOP_WALL_LEN, WALL_H, WALL_T,
-  TOP_WALL_LEN / 2, WALL_H / 2, WALL_T / 2
-);
+// Left wall (runs along Z at X=0). Inner face = +X side → material index 0.
+{
+  const mats = [wallMatLeftInner, wallMat, wallMat, wallMat, wallMat, wallMat];
+  const m = new THREE.Mesh(new THREE.BoxGeometry(WALL_T, WALL_H, LEFT_WALL_LEN), mats);
+  m.position.set(WALL_T / 2, WALL_H / 2, LEFT_WALL_LEN / 2);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m);
+}
+// Top-left wall (runs along X at Z=0). Inner face = +Z side → material index 4.
+{
+  const mats = [wallMat, wallMat, wallMat, wallMat, wallMatTopLeftInner, wallMat];
+  const m = new THREE.Mesh(new THREE.BoxGeometry(TOP_WALL_LEN, WALL_H, WALL_T), mats);
+  m.position.set(TOP_WALL_LEN / 2, WALL_H / 2, WALL_T / 2);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m);
+}
 
 // --- Furniture: draggable silver box ---
 const SNAP = 0.1; // 100 mm
@@ -827,9 +847,9 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
     });
   }
   const screenMats = [
-    makeVideoScreenMat(),
-    makeVideoScreenMat(),
-    makeStillScreenMat('assets/3.png'),
+    makeVideoScreenMat(),                   // left TV (-40°)
+    makeStillScreenMat('assets/6.jpeg'),    // centre TV (0°)
+    makeStillScreenMat('assets/3.jpg'),     // right TV (+40°)
   ];
 
   for (let i = 0; i < wallAngles.length; i++) {
@@ -917,14 +937,28 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
   // 21" 16:9 landscape → 0.465 × 0.262 m
   const oW = 0.465, oH = 0.262;
 
-  // Desk operator monitors — play the shared large-TV video (mirrored for 180° facing).
-  const opScreenMats = [0, 1].map(() => {
+  // Desk operator monitors: left plays saw.mp4, right shows 6.jpeg (both mirrored).
+  function makeStillOpMat(path) {
+    const tex = new THREE.TextureLoader().load(path);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 1;
+    return new THREE.MeshStandardMaterial({
+      map: tex, roughness: 0.22, metalness: 0.1,
+      emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.45,
+    });
+  }
+  function makeVideoOpMat() {
     const vt = makeScreenVideoTexture({ mirror: true });
     return new THREE.MeshStandardMaterial({
       map: vt, roughness: 0.22, metalness: 0.1,
       emissive: 0xffffff, emissiveMap: vt, emissiveIntensity: 0.5,
     });
-  });
+  }
+  const opScreenMats = [
+    makeVideoOpMat(),                // left desk monitor (-24°)
+    makeStillOpMat('assets/6.jpeg'), // right desk monitor (+24°)
+  ];
 
   for (let i = 0; i < opAngles.length; i++) {
     const θ = opAngles[i];
