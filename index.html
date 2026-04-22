@@ -117,6 +117,10 @@ function makeVideoElement(src) {
 const screenVideoEl  = makeVideoElement('assets/saw.mp4');      // console wall + desk monitors
 const displayVideoEl = makeVideoElement('assets/display.mp4');   // 70" standing TV
 
+// Mark a mesh as non-pickable so raycasts pass through it (used for glass /
+// overlay planes so they don't inflate the draggable hit area).
+function nonPickable(obj) { obj.raycast = () => {}; return obj; }
+
 function makeScreenVideoTexture({ videoEl = screenVideoEl, mirror = false } = {}) {
   const vt = new THREE.VideoTexture(videoEl);
   vt.colorSpace = THREE.SRGBColorSpace;
@@ -591,6 +595,7 @@ function addOven({ id, w = 1, d = 1, h = 2.4, x = 0, z = 0 } = {}) {
   });
   const glass = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.015), glassMat);
   glass.position.set(0, winY, d / 2 + 0.022);
+  nonPickable(glass);
   group.add(glass);
   // Green digital readout on the glass
   const readout = new THREE.Mesh(
@@ -1076,6 +1081,7 @@ function addDisplayBox({ id, x = 0, z = 0 } = {}) {
   const cover = new THREE.Mesh(new THREE.BoxGeometry(W, coverH, D), coverMat);
   cover.position.y = baseH + coverH / 2;
   cover.castShadow = true;
+  nonPickable(cover);
   group.add(cover);
 
   // Subtle edge lines for the cover so it reads as a glass box
@@ -1084,6 +1090,7 @@ function addDisplayBox({ id, x = 0, z = 0 } = {}) {
     new THREE.LineBasicMaterial({ color: 0xbfd3e0 })
   );
   edges.position.y = baseH + coverH / 2;
+  nonPickable(edges);
   group.add(edges);
 
   // Small black product box inside the cover (13 × 9 × 8 cm) — rotates slowly
@@ -1347,6 +1354,7 @@ function addGlassCase({ id, x = 0, z = 0 } = {}) {
     });
     const glassPane = new THREE.Mesh(new THREE.BoxGeometry(glassW, glassH, 0.02), glassPaneMat);
     glassPane.position.set(0, glassCenterY, glassZ);
+    nonPickable(glassPane);
     group.add(glassPane);
     // Edge outline so the glass reads as a pane
     const glassEdges = new THREE.LineSegments(
@@ -1354,6 +1362,7 @@ function addGlassCase({ id, x = 0, z = 0 } = {}) {
       new THREE.LineBasicMaterial({ color: 0xbfd3e0 }),
     );
     glassEdges.position.copy(glassPane.position);
+    nonPickable(glassEdges);
     group.add(glassEdges);
 
     // Additive-blended operator hologram. Start with a JPEG so something renders
@@ -1378,12 +1387,14 @@ function addGlassCase({ id, x = 0, z = 0 } = {}) {
       overlayMat,
     );
     overlay.position.set(0, glassCenterY, glassZ + 0.012);
+    nonPickable(overlay);
     group.add(overlay);
 
     // A matching pane on the back so the overlay reads from the other side too
     const overlayBack = overlay.clone();
     overlayBack.position.z = glassZ - 0.012;
     overlayBack.rotation.y = Math.PI;
+    nonPickable(overlayBack);
     group.add(overlayBack);
 
     // Keep the draggable footprint wide enough to include the pane
@@ -1421,6 +1432,9 @@ saveLayout();
 //       mouseup anywhere -> save location, cursor back to default, orbit re-enabled
 const canvas = renderer.domElement;
 const raycaster = new THREE.Raycaster();
+// Default line raycast threshold is 1 metre — absurdly generous for picking.
+// Tighten so edge-outline meshes don't inflate draggable hit areas.
+raycaster.params.Line.threshold = 0.005;
 const pointer = new THREE.Vector2();
 const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const hitPoint = new THREE.Vector3();
