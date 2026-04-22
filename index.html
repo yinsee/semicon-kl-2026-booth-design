@@ -93,6 +93,44 @@ const cubeCam = new THREE.CubeCamera(0.1, 40, cubeRT);
 cubeCam.position.set(3, 1.2, 1.5); // booth centre, roughly eye height
 scene.add(cubeCam);
 
+// Shared screen videos. Each <video> element decodes once; consumers create
+// their own VideoTexture so UV can be mirrored per-material (needed when a
+// monitor is rotated 180° to face the operator).
+function makeVideoElement(src) {
+  const el = document.createElement('video');
+  el.src = src;
+  el.loop = true;
+  el.muted = true;
+  el.playsInline = true;
+  el.autoplay = true;
+  el.preload = 'auto';
+  el.crossOrigin = 'anonymous';
+  el.style.display = 'none';
+  document.body.appendChild(el);
+  el.addEventListener('error', () => console.warn(`[video] load failed: ${src}`, el.error));
+  el.play().catch(() => {
+    const resume = () => { el.play().catch(() => {}); window.removeEventListener('pointerdown', resume); };
+    window.addEventListener('pointerdown', resume, { once: true });
+  });
+  return el;
+}
+const screenVideoEl  = makeVideoElement('assets/saw.mp4');      // console wall + desk monitors
+const displayVideoEl = makeVideoElement('assets/display.mp4');   // 70" standing TV
+
+function makeScreenVideoTexture({ videoEl = screenVideoEl, mirror = false } = {}) {
+  const vt = new THREE.VideoTexture(videoEl);
+  vt.colorSpace = THREE.SRGBColorSpace;
+  vt.minFilter = THREE.LinearFilter;
+  vt.magFilter = THREE.LinearFilter;
+  vt.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  if (mirror) {
+    vt.wrapS = THREE.RepeatWrapping;
+    vt.repeat.x = -1;
+    vt.offset.x = 1;
+  }
+  return vt;
+}
+
 // --- Camera ---
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
 camera.position.set(7, 6, 7);
@@ -368,7 +406,7 @@ addPointLight(2, 1.5, 1.5, { id: 'light-2', intensity: 18 });
 
 function addBox({
   id, w = 1, d = 1, h = 2.4, x = 0, z = 0, color = 0xdde2e6, metal = true,
-  facadeH = 0, facadeW = 0.7, facadeColor = 0x2f5fa8,
+  facadeH = 0, facadeW = 0.7, facadeColor = 0x2f5fa8, facadeTexture = null,
 } = {}) {
   const mat = metal
     ? new THREE.MeshPhysicalMaterial({
@@ -390,12 +428,27 @@ function addBox({
 
   if (facadeH > 0) {
     const facadeT = 0.03;
-    const facadeMat = new THREE.MeshStandardMaterial({
+    // Body of the facade (sides / back) stays the brand colour
+    const bodyFacadeMat = new THREE.MeshStandardMaterial({
       color: facadeColor, roughness: 0.55, metalness: 0.1,
       emissive: facadeColor, emissiveIntensity: 0.12,
     });
-    const facade = new THREE.Mesh(new THREE.BoxGeometry(facadeW, facadeH, facadeT), facadeMat);
-    // Align facade back flush with box back (local -z side)
+    // The front face: plain colour, or a texture if provided (acts as the "TV screen")
+    let screenMat = bodyFacadeMat;
+    if (facadeTexture) {
+      const tex = new THREE.TextureLoader().load(facadeTexture);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      screenMat = new THREE.MeshStandardMaterial({
+        map: tex, roughness: 0.45, metalness: 0.1,
+        emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35,
+      });
+    }
+    // Per-face materials: [+X, -X, +Y, -Y, +Z, -Z]. The front of the facade
+    // is the +Z face (same as the main box-front direction before we shift it
+    // to the back of the box; the face-normal is still local +Z on the facade slab).
+    const facadeMats = [bodyFacadeMat, bodyFacadeMat, bodyFacadeMat, bodyFacadeMat, screenMat, bodyFacadeMat];
+    const facade = new THREE.Mesh(new THREE.BoxGeometry(facadeW, facadeH, facadeT), facadeMats);
     facade.position.set(0, h / 2 + facadeH / 2, -d / 2 + facadeT / 2);
     facade.castShadow = true;
     facade.receiveShadow = true;
@@ -695,10 +748,10 @@ function addOven2({ id, w = 1, d = 1, h = 1.2, x = 0, z = 0 } = {}) {
 }
 // Second oven (chamber-style) next to the first
 addOven2({ id: 'box-2', w: 0.9, d: 1.1, h: 1.8, x: 1, z: 0 });
-// Third box: 91 × 61.5 cm, depth 1 ft (~0.305 m) with portrait blue facade (1.5 m)
-addBox({ id: 'box-3', w: 0.91, d: 0.3048, h: 0.615, x: 2.2, z: 2.0, color: 0xffffff, metal: false, facadeH: 1.2 });
-// Fourth box: same size, placed behind box-3
-addBox({ id: 'box-4', w: 0.91, d: 0.3048, h: 0.615, x: 2.2, z: 2.6, color: 0xffffff, metal: false, facadeH: 1.2 });
+// Third box: 91 × 61.5 cm, depth 1 ft (~0.305 m) with portrait display panel (4.jpeg)
+addBox({ id: 'box-3', w: 0.91, d: 0.3048, h: 0.615, x: 2.2, z: 2.0, color: 0xffffff, metal: false, facadeH: 1.2, facadeTexture: 'assets/4.jpeg' });
+// Fourth box: same size, placed behind box-3 (5.jpeg)
+addBox({ id: 'box-4', w: 0.91, d: 0.3048, h: 0.615, x: 2.2, z: 2.6, color: 0xffffff, metal: false, facadeH: 1.2, facadeTexture: 'assets/5.jpeg' });
 
 // --- Control console: curved desk + semi-circular video wall ---
 function addConsole({ id, x = 0, z = 0 } = {}) {
@@ -754,12 +807,38 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
   const tvCenterY = 1.5;        // screen center height
   const R_post = R_wall;
   const R_mon  = R_wall - 0.12; // TVs in front of the posts
-  for (const θ of wallAngles) {
+
+  // Per-TV screen materials: left & centre play the shared video; right keeps 3.png
+  function makeStillScreenMat(path) {
+    const tex = new THREE.TextureLoader().load(path);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 1;
+    return new THREE.MeshStandardMaterial({
+      map: tex, roughness: 0.25, metalness: 0.1,
+      emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.45,
+    });
+  }
+  function makeVideoScreenMat() {
+    const vt = makeScreenVideoTexture({ mirror: true });
+    return new THREE.MeshStandardMaterial({
+      map: vt, roughness: 0.22, metalness: 0.1,
+      emissive: 0xffffff, emissiveMap: vt, emissiveIntensity: 0.5,
+    });
+  }
+  const screenMats = [
+    makeVideoScreenMat(),
+    makeVideoScreenMat(),
+    makeStillScreenMat('assets/3.png'),
+  ];
+
+  for (let i = 0; i < wallAngles.length; i++) {
+    const θ = wallAngles[i];
     const sinθ = Math.sin(θ), cosθ = Math.cos(θ);
     const mx = R_mon * sinθ;
     const mz = R_mon * cosθ;
     const mon = new THREE.Group();
-    const screen = new THREE.Mesh(new THREE.BoxGeometry(mW, mH, 0.025), screenMat);
+    const screen = new THREE.Mesh(new THREE.BoxGeometry(mW, mH, 0.025), screenMats[i]);
     const frame  = new THREE.Mesh(new THREE.BoxGeometry(mW + 0.04, mH + 0.04, 0.02), frameMat);
     frame.position.z = -0.005;
     mon.add(frame, screen);
@@ -837,12 +916,23 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
   const opAngles = [-Math.PI / 7.5, Math.PI / 7.5]; // ~±24°
   // 21" 16:9 landscape → 0.465 × 0.262 m
   const oW = 0.465, oH = 0.262;
-  for (const θ of opAngles) {
+
+  // Desk operator monitors — play the shared large-TV video (mirrored for 180° facing).
+  const opScreenMats = [0, 1].map(() => {
+    const vt = makeScreenVideoTexture({ mirror: true });
+    return new THREE.MeshStandardMaterial({
+      map: vt, roughness: 0.22, metalness: 0.1,
+      emissive: 0xffffff, emissiveMap: vt, emissiveIntensity: 0.5,
+    });
+  });
+
+  for (let i = 0; i < opAngles.length; i++) {
+    const θ = opAngles[i];
     const mx = R_op * Math.sin(θ);
     const mz = R_op * Math.cos(θ);
     const my = 0.74 + oH / 2 + 0.05;
     const mon = new THREE.Group();
-    const screen = new THREE.Mesh(new THREE.BoxGeometry(oW, oH, 0.02), screenMat);
+    const screen = new THREE.Mesh(new THREE.BoxGeometry(oW, oH, 0.02), opScreenMats[i]);
     const frame  = new THREE.Mesh(new THREE.BoxGeometry(oW + 0.03, oH + 0.03, 0.018), frameMat);
     frame.position.z = -0.003;
     mon.add(frame, screen);
@@ -1112,8 +1202,11 @@ function addStandingTV({ id, x = 0, z = 0, diagIn = 70, totalH = 2.0, aspect = 1
 
   const frameMat  = new THREE.MeshStandardMaterial({ color: 0x0f0f10, roughness: 0.4, metalness: 0.5 });
   const baseMat   = new THREE.MeshStandardMaterial({ color: 0x1a1a1d, roughness: 0.5, metalness: 0.6 });
+  // Standing TV plays display.mp4 (not mirrored — this TV isn't rotated)
+  const tvVideoTex = makeScreenVideoTexture({ videoEl: displayVideoEl, mirror: false });
   const screenMat = new THREE.MeshStandardMaterial({
-    color: 0x0a0e18, emissive: 0x1f4f9e, emissiveIntensity: 0.5, roughness: 0.22,
+    map: tvVideoTex, roughness: 0.22,
+    emissive: 0xffffff, emissiveMap: tvVideoTex, emissiveIntensity: 0.5,
   });
 
   // Base plate
@@ -1218,6 +1311,88 @@ function addGlassCase({ id, x = 0, z = 0 } = {}) {
       fan.position.set(px, py, 0.03); // slightly in front of the crossbar
       group.add(fan);
     }
+  }
+
+  // --- Glass cover in front of the display with the cleanroom-operator image ---
+  {
+    const glassW = 0.85, glassH = 1.45;
+    const glassCenterY = glassH / 2;
+    const glassZ = 0.36; // in front of the base plate / fans
+
+    // Tinted glass pane (lets the fans show through subtly)
+    const glassPaneMat = new THREE.MeshPhysicalMaterial({
+      color: 0xdfeaf4,
+      transmission: 0.95, transparent: true, opacity: 1.0,
+      roughness: 0.05, metalness: 0, ior: 1.5, thickness: 0.02,
+      clearcoat: 1.0, clearcoatRoughness: 0.05,
+    });
+    const glassPane = new THREE.Mesh(new THREE.BoxGeometry(glassW, glassH, 0.02), glassPaneMat);
+    glassPane.position.set(0, glassCenterY, glassZ);
+    group.add(glassPane);
+    // Edge outline so the glass reads as a pane
+    const glassEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(glassW, glassH, 0.02)),
+      new THREE.LineBasicMaterial({ color: 0xbfd3e0 }),
+    );
+    glassEdges.position.copy(glassPane.position);
+    group.add(glassEdges);
+
+    // Video overlay (black background stencilled out via additive blending).
+    // Start with the JPEG as a placeholder; swap in the video once it can play.
+    const opTex = new THREE.TextureLoader().load('assets/operator.jpeg');
+    opTex.colorSpace = THREE.SRGBColorSpace;
+    opTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    const videoEl = document.createElement('video');
+    videoEl.src = 'assets/operator.mp4';
+    videoEl.loop = true;
+    videoEl.muted = true;
+    videoEl.playsInline = true;
+    videoEl.autoplay = true;
+    videoEl.preload = 'auto';
+    videoEl.crossOrigin = 'anonymous';
+    videoEl.style.display = 'none';
+    document.body.appendChild(videoEl);
+    videoEl.addEventListener('error', () => console.warn('[video] load failed:', videoEl.error));
+    videoEl.addEventListener('canplay', () => {
+      console.log('[video] canplay — swapping texture');
+      const vt = new THREE.VideoTexture(videoEl);
+      vt.colorSpace = THREE.SRGBColorSpace;
+      vt.minFilter = THREE.LinearFilter;
+      vt.magFilter = THREE.LinearFilter;
+      overlayMat.map = vt;
+      overlayMat.needsUpdate = true;
+      overlayBack.material.map = vt;
+      overlayBack.material.needsUpdate = true;
+    });
+    // Some browsers block autoplay until a user gesture; recover on first click.
+    videoEl.play().catch(() => {
+      const resume = () => {
+        videoEl.play().catch(() => {});
+        window.removeEventListener('pointerdown', resume);
+      };
+      window.addEventListener('pointerdown', resume, { once: true });
+    });
+    const overlayMat = new THREE.MeshBasicMaterial({
+      map: opTex, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const overlay = new THREE.Mesh(
+      new THREE.PlaneGeometry(glassW - 0.04, glassH - 0.04),
+      overlayMat,
+    );
+    overlay.position.set(0, glassCenterY, glassZ + 0.012);
+    group.add(overlay);
+
+    // A matching pane on the back so the overlay reads from the other side too
+    const overlayBack = overlay.clone();
+    overlayBack.position.z = glassZ - 0.012;
+    overlayBack.rotation.y = Math.PI;
+    group.add(overlayBack);
+
+    // Keep the draggable footprint wide enough to include the pane
+    group.userData.w = Math.max(group.userData.w, glassW);
+    group.userData.d = Math.max(group.userData.d, glassZ * 2 + 0.05);
   }
 
   const saved = savedLayout[id];
@@ -1591,6 +1766,8 @@ document.getElementById('view-front').onclick = () => setView('front');
 const gridBtn = document.getElementById('toggle-grid');
 gridBtn.onclick = () => {
   grid.visible = !grid.visible;
+  labelW.visible = grid.visible;
+  labelD.visible = grid.visible;
   gridBtn.classList.toggle('active', grid.visible);
 };
 
