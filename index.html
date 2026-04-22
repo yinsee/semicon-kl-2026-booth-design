@@ -561,7 +561,7 @@ function addOven({ id, w = 1, d = 1, h = 2.4, x = 0, z = 0 } = {}) {
 }
 
 // Big oven at the booth corner (SONIK-style machine)
-addOven({ id: 'box-1', w: 1, d: 1, h: 2.4, x: 0, z: 0 });
+addOven({ id: 'box-1', w: 0.9, d: 1.1, h: 2.4, x: 0, z: 0 });
 
 // --- Smaller chamber oven (oven2) — off-white body, traffic light, side port, door with handle ---
 function addOven2({ id, w = 1, d = 1, h = 1.2, x = 0, z = 0 } = {}) {
@@ -694,7 +694,7 @@ function addOven2({ id, w = 1, d = 1, h = 1.2, x = 0, z = 0 } = {}) {
   return group;
 }
 // Second oven (chamber-style) next to the first
-addOven2({ id: 'box-2', w: 1, d: 1, h: 1.8, x: 1, z: 0 });
+addOven2({ id: 'box-2', w: 0.9, d: 1.1, h: 1.8, x: 1, z: 0 });
 // Third box: 91 × 61.5 cm, depth 1 ft (~0.305 m) with portrait blue facade (1.5 m)
 addBox({ id: 'box-3', w: 0.91, d: 0.3048, h: 0.615, x: 2.2, z: 2.0, color: 0xffffff, metal: false, facadeH: 1.2 });
 // Fourth box: same size, placed behind box-3
@@ -1156,6 +1156,20 @@ function addGlassCase({ id, x = 0, z = 0 } = {}) {
   const W = 2 * 0.3048, D = 2 * 0.3048, H = 1.5; // 2 ft × 2 ft × 1.5 m
   const group = new THREE.Group();
   group.userData = { id, w: W, d: D, h: H, draggable: true };
+
+  // --- Base plate under the holographic display (100 × 64 cm) ---
+  {
+    const plateW = 1.0, plateD = 0.64, plateT = 0.05;
+    const plateMat = new THREE.MeshStandardMaterial({ color: 0x1f2226, roughness: 0.55, metalness: 0.25 });
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(plateW, plateT, plateD), plateMat);
+    plate.position.set(0, plateT / 2, 0);
+    plate.castShadow = true;
+    plate.receiveShadow = true;
+    group.add(plate);
+    // Widen the group's draggable footprint so the bigger base still clamps correctly
+    group.userData.w = Math.max(group.userData.w, plateW);
+    group.userData.d = Math.max(group.userData.d, plateD);
+  }
 
   // --- Black display frame ---
   const frameMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.55, metalness: 0.45 });
