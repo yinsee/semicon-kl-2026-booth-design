@@ -131,6 +131,39 @@ function makeScreenVideoTexture({ videoEl = screenVideoEl, mirror = false } = {}
   return vt;
 }
 
+// Shared MeshStandardMaterial builder for any TV/screen surface (image or video,
+// optionally U-mirrored for monitors rotated 180° toward the operator).
+THREE.Cache.enabled = true;
+// Memoise by path so the same JPEG is only decoded + uploaded to the GPU once,
+// even when it appears on multiple screens (cache returns a clone with its own
+// wrap/repeat settings but sharing the underlying .image/.source).
+const _sharedTexCache = new Map();
+const _texLoader = new THREE.TextureLoader();
+function loadSharedTexture(path) {
+  let base = _sharedTexCache.get(path);
+  if (!base) {
+    base = _texLoader.load(path);
+    base.colorSpace = THREE.SRGBColorSpace;
+    base.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    _sharedTexCache.set(path, base);
+  }
+  return base;
+}
+function makeScreenMaterial({ path = null, videoEl = null, mirror = false, intensity = 0.45, roughness = 0.25 } = {}) {
+  let tex;
+  if (videoEl) {
+    tex = makeScreenVideoTexture({ videoEl, mirror });
+  } else {
+    const base = loadSharedTexture(path);
+    tex = mirror ? base.clone() : base;
+    if (mirror) { tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 1; tex.needsUpdate = true; }
+  }
+  return new THREE.MeshStandardMaterial({
+    map: tex, roughness, metalness: 0.1,
+    emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: intensity,
+  });
+}
+
 // --- Camera ---
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
 camera.position.set(7, 6, 7);
@@ -153,7 +186,7 @@ scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.1);
 sun.position.set(6, 10, 4);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.left = -10;
 sun.shadow.camera.right = 10;
 sun.shadow.camera.top = 10;
@@ -167,7 +200,7 @@ scene.add(sun);
 function addPointLight(x, y, z, { id, intensity = 14 } = {}) {
   const light = new THREE.PointLight(0xffffff, intensity, 10, 1.6);
   light.castShadow = true;
-  light.shadow.mapSize.set(1024, 1024);
+  light.shadow.mapSize.set(512, 512); // point lights render 6 cube faces per frame — keep cheap
   light.shadow.bias = -0.0005;
 
   const bulb = new THREE.Mesh(
@@ -267,20 +300,21 @@ scene.add(edges);
 // --- Walls ---
 // Plain material for non-inner wall faces
 const wallMat = new THREE.MeshStandardMaterial({ color: 0x2f5fa8, roughness: 0.9 });
-// Mural texture — spans both inner wall faces so the image wraps around the corner.
-// Left half goes on the left wall (runs along Z); right half goes on the top-left
-// wall (runs along X); the seam is at the booth's inner corner (0,0,0).
-function makeWallMuralTex(offsetX) {
-  const t = new THREE.TextureLoader().load('assets/wall.jpeg');
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  t.wrapS = THREE.ClampToEdgeWrapping;
+// Mural split across the two inner wall faces (seam at the booth's inner corner).
+// Load once, clone per face so the JPEG is decoded and uploaded to the GPU once.
+const wallMuralBase = new THREE.TextureLoader().load('assets/wall.jpeg');
+wallMuralBase.colorSpace = THREE.SRGBColorSpace;
+wallMuralBase.anisotropy = renderer.capabilities.getMaxAnisotropy();
+wallMuralBase.wrapS = THREE.ClampToEdgeWrapping;
+function wallMuralHalf(offsetX) {
+  const t = wallMuralBase.clone();
   t.repeat.x = 0.5;
   t.offset.x = offsetX;
+  t.needsUpdate = true;
   return t;
 }
-const wallMatLeftInner    = new THREE.MeshStandardMaterial({ map: makeWallMuralTex(0),   roughness: 0.9 });
-const wallMatTopLeftInner = new THREE.MeshStandardMaterial({ map: makeWallMuralTex(0.5), roughness: 0.9 });
+const wallMatLeftInner    = new THREE.MeshStandardMaterial({ map: wallMuralHalf(0),   roughness: 0.9 });
+const wallMatTopLeftInner = new THREE.MeshStandardMaterial({ map: wallMuralHalf(0.5), roughness: 0.9 });
 
 function addWall(w, h, d, x, y, z) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
@@ -384,19 +418,17 @@ const STORAGE_KEY = 'exhibition-booth-layout-v1';
 // Paste the JSON from the Export button here to bake in a new default layout.
 // Used when localStorage is empty (fresh browser / after clearing storage).
 const DEFAULT_LAYOUT = {
-  "light-1":   { "x": 5.2, "y": 2.8,   "z": 1.5, "ry":  0 },
-  "light-2":   { "x": 2.1, "y": 2.7,   "z": 1.5, "ry":  0 },
-  "box-1":     { "x": 1.0, "y": 0,     "z": 0.9, "ry": 12.5664 },
-  "box-2":     { "x": 2.4, "y": 0,     "z": 0.8, "ry":  6.2832 },
-  "box-3":     { "x": 4.3, "y": 0.307, "z": 0.4, "ry": -2.3562 },
-  "box-4":     { "x": 4.0, "y": 0.307, "z": 1.4, "ry": -1.5708 },
-  "console-1": { "x": 5.5, "y": 0,     "z": 1.5, "ry": -1.5708 },
-  "display-1": { "x": -0.2,"y": 0,     "z": 2.1, "ry":  0 },
-  "display-2": { "x": 5.7, "y": 0,     "z": 2.7, "ry":  0.7854 },
-  "human-1":   { "x": 1.0, "y": 0,     "z": 2.3, "ry":  3.927 },
-  "tv-1":      { "x": 4.4, "y": 0,     "z": 2.5, "ry":  5.4978 },
-  "case-1":    { "x": 2.3, "y": 0,     "z": 2.8, "ry":  6.545 },
-  "cutout-1":  { "x": 5.8, "y": 0,     "z": 0.5, "ry": 10.7338 },
+  "light-1":   { "x":  5.2, "y": 2.8,   "z": 1.5, "ry":  0 },
+  "light-2":   { "x":  2.1, "y": 2.7,   "z": 1.5, "ry":  0 },
+  "box-1":     { "x":  1.0, "y": 0,     "z": 0.9, "ry": 12.5664 },
+  "box-2":     { "x":  2.4, "y": 0,     "z": 0.8, "ry":  6.2832 },
+  "box-3":     { "x":  4.3, "y": 0.307, "z": 0.4, "ry": -2.3562 },
+  "box-4":     { "x":  4.0, "y": 0.307, "z": 1.4, "ry": -1.5708 },
+  "console-1": { "x":  5.5, "y": 0,     "z": 1.5, "ry": -1.5708 },
+  "display-2": { "x":  5.7, "y": 0,     "z": 2.7, "ry":  3.1416 },
+  "human-1":   { "x":  1.0, "y": 0,     "z": 2.3, "ry":  3.927 },
+  "tv-1":      { "x":  4.4, "y": 0,     "z": 2.5, "ry":  5.4978 },
+  "case-1":    { "x":  5.6, "y": 0,     "z": 0.5, "ry":  7.854 },
 };
 function loadLayout() {
   try {
@@ -454,16 +486,9 @@ function addBox({
       emissive: facadeColor, emissiveIntensity: 0.12,
     });
     // The front face: plain colour, or a texture if provided (acts as the "TV screen")
-    let screenMat = bodyFacadeMat;
-    if (facadeTexture) {
-      const tex = new THREE.TextureLoader().load(facadeTexture);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      screenMat = new THREE.MeshStandardMaterial({
-        map: tex, roughness: 0.45, metalness: 0.1,
-        emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35,
-      });
-    }
+    const screenMat = facadeTexture
+      ? makeScreenMaterial({ path: facadeTexture, intensity: 0.35, roughness: 0.45 })
+      : bodyFacadeMat;
     // Per-face materials: [+X, -X, +Y, -Y, +Z, -Z]. The front of the facade
     // is the +Z face (same as the main box-front direction before we shift it
     // to the back of the box; the face-normal is still local +Z on the facade slab).
@@ -828,28 +853,10 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
   const R_post = R_wall;
   const R_mon  = R_wall - 0.12; // TVs in front of the posts
 
-  // Per-TV screen materials: left & centre play the shared video; right keeps 3.png
-  function makeStillScreenMat(path) {
-    const tex = new THREE.TextureLoader().load(path);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 1;
-    return new THREE.MeshStandardMaterial({
-      map: tex, roughness: 0.25, metalness: 0.1,
-      emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.45,
-    });
-  }
-  function makeVideoScreenMat() {
-    const vt = makeScreenVideoTexture({ mirror: true });
-    return new THREE.MeshStandardMaterial({
-      map: vt, roughness: 0.22, metalness: 0.1,
-      emissive: 0xffffff, emissiveMap: vt, emissiveIntensity: 0.5,
-    });
-  }
   const screenMats = [
-    makeVideoScreenMat(),                   // left TV (-40°)
-    makeStillScreenMat('assets/6.jpeg'),    // centre TV (0°)
-    makeStillScreenMat('assets/3.jpg'),     // right TV (+40°)
+    makeScreenMaterial({ videoEl: screenVideoEl, mirror: true, intensity: 0.5, roughness: 0.22 }), // left TV (-40°)
+    makeScreenMaterial({ path: 'assets/6.jpeg',  mirror: true }),                                   // centre TV (0°)
+    makeScreenMaterial({ path: 'assets/3.jpg',   mirror: true }),                                   // right TV (+40°)
   ];
 
   for (let i = 0; i < wallAngles.length; i++) {
@@ -938,26 +945,9 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
   const oW = 0.465, oH = 0.262;
 
   // Desk operator monitors: left plays saw.mp4, right shows 6.jpeg (both mirrored).
-  function makeStillOpMat(path) {
-    const tex = new THREE.TextureLoader().load(path);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 1;
-    return new THREE.MeshStandardMaterial({
-      map: tex, roughness: 0.22, metalness: 0.1,
-      emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.45,
-    });
-  }
-  function makeVideoOpMat() {
-    const vt = makeScreenVideoTexture({ mirror: true });
-    return new THREE.MeshStandardMaterial({
-      map: vt, roughness: 0.22, metalness: 0.1,
-      emissive: 0xffffff, emissiveMap: vt, emissiveIntensity: 0.5,
-    });
-  }
   const opScreenMats = [
-    makeVideoOpMat(),                // left desk monitor (-24°)
-    makeStillOpMat('assets/6.jpeg'), // right desk monitor (+24°)
+    makeScreenMaterial({ videoEl: screenVideoEl, mirror: true, intensity: 0.5, roughness: 0.22 }),
+    makeScreenMaterial({ path: 'assets/6.jpeg',  mirror: true,                  roughness: 0.22 }),
   ];
 
   for (let i = 0; i < opAngles.length; i++) {
@@ -1126,7 +1116,6 @@ function addDisplayBox({ id, x = 0, z = 0 } = {}) {
   return group;
 }
 
-addDisplayBox({ id: 'display-1', x: 1.4, z: 1.8 });
 addDisplayBox({ id: 'display-2', x: 2.4, z: 1.8 });
 
 // --- Human figure (170 cm, simple mannequin) ---
@@ -1236,12 +1225,8 @@ function addStandingTV({ id, x = 0, z = 0, diagIn = 70, totalH = 2.0, aspect = 1
 
   const frameMat  = new THREE.MeshStandardMaterial({ color: 0x0f0f10, roughness: 0.4, metalness: 0.5 });
   const baseMat   = new THREE.MeshStandardMaterial({ color: 0x1a1a1d, roughness: 0.5, metalness: 0.6 });
-  // Standing TV plays display.mp4 (not mirrored — this TV isn't rotated)
-  const tvVideoTex = makeScreenVideoTexture({ videoEl: displayVideoEl, mirror: false });
-  const screenMat = new THREE.MeshStandardMaterial({
-    map: tvVideoTex, roughness: 0.22,
-    emissive: 0xffffff, emissiveMap: tvVideoTex, emissiveIntensity: 0.5,
-  });
+  // Standing TV plays display.mp4 (not rotated, so no U-mirror).
+  const screenMat = makeScreenMaterial({ videoEl: displayVideoEl, intensity: 0.5, roughness: 0.22 });
 
   // Base plate
   const base = new THREE.Mesh(new THREE.BoxGeometry(baseW, baseT, baseD), baseMat);
@@ -1371,41 +1356,18 @@ function addGlassCase({ id, x = 0, z = 0 } = {}) {
     glassEdges.position.copy(glassPane.position);
     group.add(glassEdges);
 
-    // Video overlay (black background stencilled out via additive blending).
-    // Start with the JPEG as a placeholder; swap in the video once it can play.
+    // Additive-blended operator hologram. Start with a JPEG so something renders
+    // immediately, then swap in a VideoTexture once the MP4 is ready.
     const opTex = new THREE.TextureLoader().load('assets/operator.jpeg');
     opTex.colorSpace = THREE.SRGBColorSpace;
     opTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-    const videoEl = document.createElement('video');
-    videoEl.src = 'assets/operator.mp4';
-    videoEl.loop = true;
-    videoEl.muted = true;
-    videoEl.playsInline = true;
-    videoEl.autoplay = true;
-    videoEl.preload = 'auto';
-    videoEl.crossOrigin = 'anonymous';
-    videoEl.style.display = 'none';
-    document.body.appendChild(videoEl);
-    videoEl.addEventListener('error', () => console.warn('[video] load failed:', videoEl.error));
-    videoEl.addEventListener('canplay', () => {
-      console.log('[video] canplay — swapping texture');
-      const vt = new THREE.VideoTexture(videoEl);
-      vt.colorSpace = THREE.SRGBColorSpace;
-      vt.minFilter = THREE.LinearFilter;
-      vt.magFilter = THREE.LinearFilter;
+    const opVideoEl = makeVideoElement('assets/operator.mp4');
+    opVideoEl.addEventListener('canplay', () => {
+      const vt = makeScreenVideoTexture({ videoEl: opVideoEl, mirror: false });
       overlayMat.map = vt;
       overlayMat.needsUpdate = true;
       overlayBack.material.map = vt;
       overlayBack.material.needsUpdate = true;
-    });
-    // Some browsers block autoplay until a user gesture; recover on first click.
-    videoEl.play().catch(() => {
-      const resume = () => {
-        videoEl.play().catch(() => {});
-        window.removeEventListener('pointerdown', resume);
-      };
-      window.addEventListener('pointerdown', resume, { once: true });
     });
     const overlayMat = new THREE.MeshBasicMaterial({
       map: opTex, transparent: true, depthWrite: false,
@@ -1443,99 +1405,6 @@ function addGlassCase({ id, x = 0, z = 0 } = {}) {
 
 addGlassCase({ id: 'case-1', x: 0.3, z: 2.3 });
 
-// --- Cut-out display humanoid (flat standee of a person with a laptop) ---
-function addCutoutFigure({ id, x = 0, z = 0, W = 0.9, H = 1.4 } = {}) {
-  const D = 0.3;
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: H, draggable: true };
-
-  // Side-view silhouette facing +X (to the right).
-  const canvas = document.createElement('canvas');
-  canvas.width = 512; canvas.height = 1024;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const cx = 200;              // figure centred left of canvas to leave room for forward arm
-  const sil = '#c2c6cc';       // robot-grey silhouette
-
-  // Head
-  ctx.fillStyle = sil;
-  ctx.beginPath(); ctx.arc(cx, 150, 70, 0, Math.PI * 2); ctx.fill();
-  // Nose / chin profile bump on the right
-  ctx.beginPath();
-  ctx.moveTo(cx + 55, 132);
-  ctx.lineTo(cx + 92, 156);
-  ctx.lineTo(cx + 55, 178);
-  ctx.closePath(); ctx.fill();
-
-  // Neck
-  ctx.fillRect(cx - 22, 215, 44, 38);
-
-  // Torso (narrow in side view)
-  ctx.beginPath();
-  ctx.moveTo(cx - 55, 253);
-  ctx.lineTo(cx + 55, 253);
-  ctx.lineTo(cx + 45, 572);
-  ctx.lineTo(cx - 50, 572);
-  ctx.closePath(); ctx.fill();
-
-  // Single arm visible (side profile): shoulder → elbow → hand, reaching forward and lower
-  ctx.lineWidth = 34;
-  ctx.strokeStyle = sil;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(cx + 40, 262);    // shoulder front
-  ctx.lineTo(cx + 72, 345);    // elbow (bent higher, forearm horizontal)
-  ctx.lineTo(cx + 212, 395);   // hand at table height
-  ctx.stroke();
-
-  // Hand
-  ctx.fillStyle = sil;
-  ctx.beginPath();
-  ctx.ellipse(cx + 218, 402, 28, 17, 0.25, 0, Math.PI * 2); ctx.fill();
-
-  // Legs (two overlapping legs in profile)
-  ctx.fillStyle = sil;
-  ctx.fillRect(cx - 35, 572, 70, 380);
-
-  // Shoe pointing forward
-  ctx.fillStyle = sil;
-  ctx.beginPath();
-  ctx.ellipse(cx + 20, 962, 78, 17, 0, 0, Math.PI * 2); ctx.fill();
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-  const panelMat = new THREE.MeshStandardMaterial({
-    map: tex, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide, roughness: 0.8,
-  });
-  const panel = new THREE.Mesh(new THREE.PlaneGeometry(W, H), panelMat);
-  panel.position.y = H / 2;
-  panel.castShadow = true;
-  group.add(panel);
-
-  // Small rectangular base to stand on
-  const baseMat = new THREE.MeshStandardMaterial({ color: 0x222428, roughness: 0.6, metalness: 0.1 });
-  const base = new THREE.Mesh(new THREE.BoxGeometry(W * 0.55, 0.03, 0.22), baseMat);
-  base.position.set(0, 0.015, 0);
-  base.castShadow = true;
-  base.receiveShadow = true;
-  group.add(base);
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-addCutoutFigure({ id: 'cutout-1', x: 0.3, z: 1.2 });
 
 // Clamp everything loaded from saved layout back inside the 10×10 m area,
 // in case an object was dragged out before bounds-clamping was added.
@@ -1545,55 +1414,6 @@ for (const m of furniture) {
   m.position.z = THREE.MathUtils.clamp(m.position.z, BOUND_MIN + d / 2, BOUND_MAX - d / 2);
 }
 saveLayout();
-
-// --- Standalone curved table (separate draggable object) ---
-function addCurvedTable({ id, cx = 0, cz = 0, innerR = 0.35, outerR = 0.7, halfAngleDeg = 50, tableH = 0.75 } = {}) {
-  const halfAngle = Math.PI * halfAngleDeg / 180;
-  const topThick = 0.04;
-
-  const W = 2 * outerR * Math.sin(halfAngle);
-  const D = outerR; // conservative — arc extends from local origin outward
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: tableH, draggable: true };
-
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf2efe7, roughness: 0.75 });
-  const topMat  = new THREE.MeshStandardMaterial({ color: 0xd9d4c9, roughness: 0.55, metalness: 0.05 });
-
-  const s = new THREE.Shape();
-  const a0 = -Math.PI / 2 - halfAngle;
-  const a1 = -Math.PI / 2 + halfAngle;
-  s.moveTo(outerR * Math.cos(a0), outerR * Math.sin(a0));
-  s.absarc(0, 0, outerR, a0, a1, false);
-  s.lineTo(innerR * Math.cos(a1), innerR * Math.sin(a1));
-  s.absarc(0, 0, innerR, a1, a0, true);
-  s.closePath();
-
-  const bodyGeom = new THREE.ExtrudeGeometry(s, { depth: tableH - topThick, bevelEnabled: false, curveSegments: 48 });
-  bodyGeom.rotateX(-Math.PI / 2);
-  const body = new THREE.Mesh(bodyGeom, bodyMat);
-  body.castShadow = body.receiveShadow = true;
-  group.add(body);
-
-  const topGeom = new THREE.ExtrudeGeometry(s, { depth: topThick, bevelEnabled: false, curveSegments: 48 });
-  topGeom.rotateX(-Math.PI / 2);
-  const top = new THREE.Mesh(topGeom, topMat);
-  top.position.y = tableH - topThick;
-  top.castShadow = top.receiveShadow = true;
-  group.add(top);
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    // Local origin of the group = arc center. Place it directly at (cx, cz).
-    group.position.set(cx, 0, cz);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
 
 // --- Drag logic ---
 // Flow: mousedown on a box -> cursor 'grabbing', orbit disabled
