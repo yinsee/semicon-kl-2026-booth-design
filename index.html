@@ -426,13 +426,17 @@ const DEFAULT_LAYOUT = {
   "light-2":   { "x":  2.1, "y": 2.7,   "z": 1.5, "ry":  0 },
   "box-1":     { "x":  1.0, "y": 0,     "z": 0.9, "ry": 12.5664 },
   "box-2":     { "x":  2.4, "y": 0,     "z": 0.8, "ry":  6.2832 },
-  "box-3":     { "x":  4.3, "y": 0.307, "z": 0.4, "ry": -2.3562 },
+  "box-3":     { "x":  4.4, "y": 0.307, "z": 0.4, "ry": -2.3562 },
   "box-4":     { "x":  4.0, "y": 0.307, "z": 1.4, "ry": -1.5708 },
-  "console-1": { "x":  5.5, "y": 0,     "z": 1.5, "ry": -1.5708 },
-  "display-2": { "x":  5.7, "y": 0,     "z": 2.7, "ry":  3.1416 },
+  "console-1": { "x":  5.3, "y": 0,     "z": 1.5, "ry": -1.5708 },
+  "pc-1":      { "x":  5.3, "y": 0,     "z": 2.4, "ry":  2.3562 },
+  "pc-2":      { "x":  5.4, "y": 0,     "z": 0.6, "ry":  0.7854 },
+  "table-a":   { "x":  5.2, "y": 0,     "z": 2.4, "ry": -1.0472 },
+  "table-b":   { "x":  5.4, "y": 0,     "z": 0.6, "ry":  1.0472 },
+  "display-2": { "x":  5.8, "y": 0,     "z": 2.8, "ry":  3.1416 },
   "human-1":   { "x":  1.0, "y": 0,     "z": 2.3, "ry":  3.927 },
   "tv-1":      { "x":  4.4, "y": 0,     "z": 2.5, "ry":  5.4978 },
-  "case-1":    { "x":  5.6, "y": 0,     "z": 0.5, "ry":  7.854 },
+  "case-1":    { "x":  4.8, "y": 0,     "z": 1.5, "ry":  7.854 },
 };
 function loadLayout() {
   try {
@@ -821,42 +825,12 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
   op.position.set(0, 0, -D / 2 + 0.55);
   group.add(op);
 
-  // Annular-sector shape in XY (shape y<0 -> world +Z forward after rotateX(-π/2))
-  function annularShape(innerR, outerR, halfLeft, halfRight = halfLeft) {
-    const s = new THREE.Shape();
-    const a0 = -Math.PI / 2 - halfLeft;
-    const a1 = -Math.PI / 2 + halfRight;
-    s.moveTo(outerR * Math.cos(a0), outerR * Math.sin(a0));
-    s.absarc(0, 0, outerR, a0, a1, false);
-    s.lineTo(innerR * Math.cos(a1), innerR * Math.sin(a1));
-    s.absarc(0, 0, innerR, a1, a0, true);
-    s.closePath();
-    return s;
-  }
-
-  // --- Curved desk ---
-  // Desk sits close behind the TV poles (R_wall = 1.55). 1.5 ft radial width ≈ 0.457 m.
-  // 90° total sweep, asymmetric — left side keeps its 55° span, right shortened to 35°.
-  const deskShape = annularShape(0.89, 1.35, Math.PI * 20 / 180, Math.PI * 55 / 180);
-  const deskBodyGeom = new THREE.ExtrudeGeometry(deskShape, { depth: 0.7, bevelEnabled: false, curveSegments: 48 });
-  deskBodyGeom.rotateX(-Math.PI / 2);
-  const deskBody = new THREE.Mesh(deskBodyGeom, bodyMat);
-  deskBody.castShadow = deskBody.receiveShadow = true;
-  op.add(deskBody);
-
-  const deskTopGeom = new THREE.ExtrudeGeometry(deskShape, { depth: 0.04, bevelEnabled: false, curveSegments: 48 });
-  deskTopGeom.rotateX(-Math.PI / 2);
-  const deskTopMesh = new THREE.Mesh(deskTopGeom, topMat);
-  deskTopMesh.position.y = 0.7;
-  deskTopMesh.castShadow = deskTopMesh.receiveShadow = true;
-  op.add(deskTopMesh);
-
   // --- Curved video wall: 3 × 43" portrait TVs on an arc around the operator ---
   // 43" 16:9 → 0.9521 × 0.5355 m landscape → portrait swaps to 0.5355 × 0.9521
   const R_wall = 1.55;
   const wallAngles = [-Math.PI * 40 / 180, 0, Math.PI * 40 / 180]; // ±40°
   const mW = 0.952, mH = 0.536; // landscape 43"
-  const tvCenterY = 1.5;        // screen center height
+  const tvCenterY = 1.92;       // screen bottom at 165 cm (1.65 + mH/2)
   const R_post = R_wall;
   const R_mon  = R_wall - 0.12; // TVs in front of the posts
 
@@ -945,48 +919,6 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
     op.add(bannerOut, bannerIn);
   }
 
-  // --- Operator monitors (2 screens on the desk, spaced apart) ---
-  const R_op = 1.1; // on the relocated desk surface
-  const opAngles = [Math.PI * 4 / 180, Math.PI * 32 / 180];
-  // 21" 16:9 landscape → 0.465 × 0.262 m
-  const oW = 0.465, oH = 0.262;
-
-  // Desk operator monitors: left plays saw.mp4, right shows 6.jpeg (both mirrored).
-  const opScreenMats = [
-    makeScreenMaterial({ videoEl: screenVideoEl, mirror: true, intensity: 0.5, roughness: 0.22 }),
-    makeScreenMaterial({ path: 'assets/6.jpeg',  mirror: true,                  roughness: 0.22 }),
-  ];
-
-  for (let i = 0; i < opAngles.length; i++) {
-    const θ = opAngles[i];
-    const mx = R_op * Math.sin(θ);
-    const mz = R_op * Math.cos(θ);
-    const my = 0.74 + oH / 2 + 0.05;
-    const mon = new THREE.Group();
-    const screen = new THREE.Mesh(new THREE.BoxGeometry(oW, oH, 0.02), opScreenMats[i]);
-    const frame  = new THREE.Mesh(new THREE.BoxGeometry(oW + 0.03, oH + 0.03, 0.018), frameMat);
-    frame.position.z = -0.003;
-    mon.add(frame, screen);
-    mon.position.set(mx, my, mz);
-    mon.rotation.order = 'YXZ';
-    mon.rotation.y = θ + Math.PI;
-    mon.rotation.x = 0.12; // tilt top slightly back toward wall
-    mon.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-    op.add(mon);
-
-    // Stand
-    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.05), frameMat);
-    stand.position.set(mx, 0.74 + 0.05, mz);
-    stand.castShadow = true;
-    op.add(stand);
-
-    // Keyboard, placed between operator and monitor on the desk
-    const kb = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.02, 0.14), frameMat);
-    kb.position.set(Math.sin(θ) * 0.92, 0.76, Math.cos(θ) * 0.92);
-    kb.rotation.y = θ;
-    op.add(kb);
-  }
-
   const saved = savedLayout[id];
   if (saved) {
     group.position.set(saved.x, 0, saved.z);
@@ -1002,6 +934,166 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
 
 // Place along the right edge with some clearance from the booth edge
 addConsole({ id: 'console-1', x: 6 - 2.6, z: 0.3 });
+
+// --- Curved arc desk (standalone, was part of the console before) ---
+// DO-NOT-DELETE: kept intentionally even when not currently instantiated.
+function addArcDesk({ id, x = 0, z = 0 } = {}) {
+  const W = 1.6, D = 1.4, H = 0.74;
+  const group = new THREE.Group();
+  group.userData = { id, w: W, d: D, h: H, draggable: true };
+
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2b2f34, roughness: 0.65, metalness: 0.25 });
+  const topMat  = new THREE.MeshStandardMaterial({ color: 0xe4e6e9, roughness: 0.45, metalness: 0.1 });
+
+  function annularShape(innerR, outerR, halfLeft, halfRight = halfLeft) {
+    const s = new THREE.Shape();
+    const a0 = -Math.PI / 2 - halfLeft;
+    const a1 = -Math.PI / 2 + halfRight;
+    s.moveTo(outerR * Math.cos(a0), outerR * Math.sin(a0));
+    s.absarc(0, 0, outerR, a0, a1, false);
+    s.lineTo(innerR * Math.cos(a1), innerR * Math.sin(a1));
+    s.absarc(0, 0, innerR, a1, a0, true);
+    s.closePath();
+    return s;
+  }
+  const deskShape = annularShape(0.89, 1.35, Math.PI * 20 / 180, Math.PI * 55 / 180);
+  const bodyGeom = new THREE.ExtrudeGeometry(deskShape, { depth: 0.7, bevelEnabled: false, curveSegments: 48 });
+  bodyGeom.rotateX(-Math.PI / 2);
+  const body = new THREE.Mesh(bodyGeom, bodyMat);
+  body.castShadow = body.receiveShadow = true;
+  group.add(body);
+
+  const topGeom = new THREE.ExtrudeGeometry(deskShape, { depth: 0.04, bevelEnabled: false, curveSegments: 48 });
+  topGeom.rotateX(-Math.PI / 2);
+  const topMesh = new THREE.Mesh(topGeom, topMat);
+  topMesh.position.y = 0.7;
+  topMesh.castShadow = topMesh.receiveShadow = true;
+  group.add(topMesh);
+
+  const saved = savedLayout[id];
+  if (saved) {
+    group.position.set(saved.x, 0, saved.z);
+    group.rotation.y = saved.ry ?? 0;
+  } else {
+    group.position.set(x + W / 2, 0, z + D / 2);
+  }
+  scene.add(group);
+  furniture.push(group);
+  return group;
+}
+
+// --- PC: 21" monitor on stand + keyboard (sits on a desk/table surface) ---
+function addPC({ id, x = 0, z = 0, screen = 'video' } = {}) {
+  const W = 0.5, D = 0.35, H = 1.1;
+  const group = new THREE.Group();
+  group.userData = { id, w: W, d: D, h: H, draggable: true };
+
+  const frameMat  = new THREE.MeshStandardMaterial({ color: 0x1a1c1f, roughness: 0.4, metalness: 0.7 });
+  const screenMat = screen === 'video'
+    ? makeScreenMaterial({ videoEl: screenVideoEl, mirror: false, intensity: 0.5, roughness: 0.22 })
+    : makeScreenMaterial({ path: screen,           mirror: false,                  roughness: 0.22 });
+
+  const oW = 0.465, oH = 0.262;
+  const deskTop = 0.74;
+  const my = deskTop + oH / 2 + 0.10; // screen centre above the desk top
+  const mon = new THREE.Group();
+  mon.add(
+    new THREE.Mesh(new THREE.BoxGeometry(oW + 0.03, oH + 0.03, 0.018), frameMat),
+    new THREE.Mesh(new THREE.BoxGeometry(oW, oH, 0.02), screenMat),
+  );
+  mon.children[0].position.z = -0.003;
+  mon.position.set(0, my, -0.09);
+  mon.rotation.x = 0.12;
+  mon.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+  group.add(mon);
+
+  // Monitor stand
+  const stand = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.05), frameMat);
+  stand.position.set(0, deskTop + 0.05, -0.09);
+  stand.castShadow = true;
+  group.add(stand);
+
+  // Keyboard in front of monitor
+  const kb = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.02, 0.14), frameMat);
+  kb.position.set(0, deskTop + 0.02, 0.08);
+  kb.castShadow = true;
+  group.add(kb);
+
+  const saved = savedLayout[id];
+  if (saved) {
+    group.position.set(saved.x, 0, saved.z);
+    group.rotation.y = saved.ry ?? 0;
+  } else {
+    group.position.set(x + W / 2, 0, z + D / 2);
+  }
+  scene.add(group);
+  furniture.push(group);
+  return group;
+}
+
+// --- Foldable black table (60 × 60 × 74 cm, black top + metal legs) ---
+function addFoldingTable({ id, x = 0, z = 0 } = {}) {
+  const W = 0.60, D = 0.60, H = 0.74;
+  const topT = 0.04;
+  const group = new THREE.Group();
+  group.userData = { id, w: W, d: D, h: H, draggable: true };
+
+  const topMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.55, metalness: 0.15 });
+  const legMat = new THREE.MeshStandardMaterial({ color: 0xb0b3b8, roughness: 0.4,  metalness: 0.6 });
+
+  const top = new THREE.Mesh(new THREE.BoxGeometry(W, topT, D), topMat);
+  top.position.y = H - topT / 2;
+  top.castShadow = top.receiveShadow = true;
+  group.add(top);
+
+  const legH = H - topT;
+  const inset = 0.08;
+  const corners = [
+    [-W / 2 + inset, -D / 2 + inset], [ W / 2 - inset, -D / 2 + inset],
+    [ W / 2 - inset,  D / 2 - inset], [-W / 2 + inset,  D / 2 - inset],
+  ];
+  for (const [lx, lz] of corners) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, legH, 12), legMat);
+    leg.position.set(lx, legH / 2, lz);
+    leg.castShadow = true;
+    group.add(leg);
+  }
+  // Centre folding-hinge rail running front-to-back
+  const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.02, D - 0.1), legMat);
+  hinge.position.set(0, H - topT - 0.01, 0);
+  group.add(hinge);
+
+  // Draped tablecloth — a slightly oversized box covering the top and hanging
+  // almost to the floor, hides the legs.
+  const clothMat = new THREE.MeshStandardMaterial({
+    color: 0x0a1a3a, roughness: 0.9, metalness: 0,
+  });
+  const clothW = W + 0.04;
+  const clothD = D + 0.04;
+  const clothH = H;                // drape from just below floor to table top
+  const cloth = new THREE.Mesh(new THREE.BoxGeometry(clothW, clothH, clothD), clothMat);
+  cloth.position.set(0, clothH / 2, 0);
+  cloth.castShadow = true;
+  cloth.receiveShadow = true;
+  group.add(cloth);
+
+  const saved = savedLayout[id];
+  if (saved) {
+    group.position.set(saved.x, 0, saved.z);
+    group.rotation.y = saved.ry ?? 0;
+  } else {
+    group.position.set(x + W / 2, 0, z + D / 2);
+  }
+  scene.add(group);
+  furniture.push(group);
+  return group;
+}
+
+// addArcDesk({ id: 'arc-desk-1', x: 3.5, z: 0.8 }); // hidden — uncomment to restore
+addPC({ id: 'pc-1', x: 3.4, z: 1.2, screen: 'video' });
+addPC({ id: 'pc-2', x: 4.0, z: 1.2, screen: 'assets/6.jpeg' });
+addFoldingTable({ id: 'table-a', x: 2.0, z: 2.7 });
+addFoldingTable({ id: 'table-b', x: 3.5, z: 2.7 });
 
 // --- Standing display box (white plinth + glass cover) ---
 function addDisplayBox({ id, x = 0, z = 0 } = {}) {
@@ -1343,7 +1435,7 @@ function addGlassCase({ id, x = 0, z = 0 } = {}) {
 
   // --- Glass cover in front of the display with the cleanroom-operator image ---
   {
-    const glassW = 0.85, glassH = 1.45;
+    const glassW = 0.85, glassH = 1.65;
     const glassCenterY = glassH / 2;
     const glassZ = 0.36; // in front of the base plate / fans
 
