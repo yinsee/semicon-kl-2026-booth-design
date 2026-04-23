@@ -1730,6 +1730,11 @@ gridBtn.onclick = () => {
   grid.visible = !grid.visible;
   labelW.visible = grid.visible;
   labelD.visible = grid.visible;
+  // Hide bulb meshes alongside the grid (keep the PointLight child rendering
+  // so illumination stays on — toggling only the material hides the fixture).
+  for (const obj of furniture) {
+    if (obj.userData.isLight) obj.material.visible = grid.visible;
+  }
   gridBtn.classList.toggle('active', grid.visible);
 };
 
