@@ -59,7 +59,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 // --- Dimensions (meters) ---
 const ROOM_W = 6;      // X: width
 const ROOM_D = 3;      // Z: depth
-const WALL_H = 2.5;    // Y: wall height
+const WALL_H = 2.47;   // Y: wall height (247 cm)
 const WALL_T = 0.08;   // wall thickness
 const LEFT_WALL_LEN = 3;    // left wall along Z
 const TOP_WALL_LEN  = 3;    // top-left wall along X
@@ -304,21 +304,16 @@ scene.add(edges);
 // --- Walls ---
 // Plain material for non-inner wall faces
 const wallMat = new THREE.MeshStandardMaterial({ color: 0x2f5fa8, roughness: 0.9 });
-// Mural split across the two inner wall faces (seam at the booth's inner corner).
-// Load once, clone per face so the JPEG is decoded and uploaded to the GPU once.
-const wallMuralBase = new THREE.TextureLoader().load('assets/wall.jpeg');
-wallMuralBase.colorSpace = THREE.SRGBColorSpace;
-wallMuralBase.anisotropy = renderer.capabilities.getMaxAnisotropy();
-wallMuralBase.wrapS = THREE.ClampToEdgeWrapping;
-function wallMuralHalf(offsetX) {
-  const t = wallMuralBase.clone();
-  t.repeat.x = 0.5;
-  t.offset.x = offsetX;
-  t.needsUpdate = true;
+// Each inner wall face gets its own backdrop image, stretched to fill the wall.
+function loadWallTex(path) {
+  const t = new THREE.TextureLoader().load(path);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
 }
-const wallMatLeftInner    = new THREE.MeshStandardMaterial({ map: wallMuralHalf(0),   roughness: 0.9 });
-const wallMatTopLeftInner = new THREE.MeshStandardMaterial({ map: wallMuralHalf(0.5), roughness: 0.9 });
+const wallMatLeftInner    = new THREE.MeshStandardMaterial({ map: loadWallTex('assets/backdrop1.jpg'), roughness: 0.9 });
+const wallMatTopLeftInner = new THREE.MeshStandardMaterial({ map: loadWallTex('assets/backdrop2.jpg'), roughness: 0.9 });
 
 function addWall(w, h, d, x, y, z) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
@@ -425,18 +420,22 @@ const DEFAULT_LAYOUT = {
   "light-1":   { "x":  5.2, "y": 2.8,   "z": 1.5, "ry":  0 },
   "light-2":   { "x":  2.1, "y": 2.7,   "z": 1.5, "ry":  0 },
   "box-1":     { "x":  1.0, "y": 0,     "z": 0.9, "ry": 12.5664 },
-  "box-2":     { "x":  2.4, "y": 0,     "z": 0.8, "ry":  6.2832 },
-  "box-3":     { "x":  4.4, "y": 0.307, "z": 0.4, "ry": -2.3562 },
-  "box-4":     { "x":  4.0, "y": 0.307, "z": 1.4, "ry": -1.5708 },
-  "console-1": { "x":  5.3, "y": 0,     "z": 1.5, "ry": -1.5708 },
-  "pc-1":      { "x":  5.3, "y": 0,     "z": 2.4, "ry":  2.3562 },
-  "pc-2":      { "x":  5.4, "y": 0,     "z": 0.6, "ry":  0.7854 },
-  "table-a":   { "x":  5.2, "y": 0,     "z": 2.4, "ry": -1.0472 },
-  "table-b":   { "x":  5.4, "y": 0,     "z": 0.6, "ry":  1.0472 },
-  "display-2": { "x":  5.8, "y": 0,     "z": 2.8, "ry":  3.1416 },
-  "human-1":   { "x":  1.0, "y": 0,     "z": 2.3, "ry":  3.927 },
-  "tv-1":      { "x":  4.4, "y": 0,     "z": 2.5, "ry":  5.4978 },
-  "case-1":    { "x":  4.8, "y": 0,     "z": 1.5, "ry":  7.854 },
+  "box-2":     { "x":  2.2, "y": 0,     "z": 0.8, "ry":  6.2832 },
+  "box-3":     { "x":  4.3, "y": 0.307, "z": 0.5, "ry": -2.0944 },
+  "box-4":     { "x":  4.0, "y": 0.307, "z": 1.5, "ry": -1.5708 },
+  "console-1": { "x":  5.2, "y": 0,     "z": 1.5, "ry": -1.5708 },
+  "pc-1":      { "x":  5.2, "y": 0,     "z": 2.5, "ry":  2.3562 },
+  "pc-2":      { "x":  5.4, "y": 0,     "z": 0.5, "ry":  0.7854 },
+  "table-a":   { "x":  5.3, "y": 0.37,  "z": 2.5, "ry": -0.7854 },
+  "table-b":   { "x":  5.2, "y": 0.37,  "z": 0.4, "ry":  1.0472 },
+  "qp-1":      { "x":  4.6, "y": 0,     "z": 0.8, "ry":  0 },
+  "qp-2":      { "x":  5.2, "y": 0,     "z": 1.0, "ry":  0 },
+  "qp-3":      { "x":  5.2, "y": 0,     "z": 1.9, "ry":  0 },
+  "qp-4":      { "x":  4.6, "y": 0,     "z": 2.2, "ry":  0 },
+  "display-2": { "x":  5.8, "y": 0,     "z": 2.9, "ry":  3.1416 },
+  "human-1":   { "x":  1.9, "y": 0,     "z": 2.7, "ry":  4.1888 },
+  "tv-1":      { "x":  4.3, "y": 0,     "z": 2.5, "ry":  5.4978 },
+  "case-1":    { "x":  4.7, "y": 0,     "z": 1.5, "ry":  7.854 },
 };
 function loadLayout() {
   try {
@@ -668,7 +667,7 @@ function addOven({ id, w = 1, d = 1, h = 2.4, x = 0, z = 0 } = {}) {
 }
 
 // Big oven at the booth corner (SONIK-style machine)
-addOven({ id: 'box-1', w: 0.9, d: 1.1, h: 2.4, x: 0, z: 0 });
+addOven({ id: 'box-1', w: 0.9, d: 1.1, h: 2.5, x: 0, z: 0 });
 
 // --- Smaller chamber oven (oven2) — off-white body, traffic light, side port, door with handle ---
 function addOven2({ id, w = 1, d = 1, h = 1.2, x = 0, z = 0 } = {}) {
@@ -1092,8 +1091,90 @@ function addFoldingTable({ id, x = 0, z = 0 } = {}) {
 // addArcDesk({ id: 'arc-desk-1', x: 3.5, z: 0.8 }); // hidden — uncomment to restore
 addPC({ id: 'pc-1', x: 3.4, z: 1.2, screen: 'video' });
 addPC({ id: 'pc-2', x: 4.0, z: 1.2, screen: 'assets/6.jpeg' });
-addFoldingTable({ id: 'table-a', x: 2.0, z: 2.7 });
-addFoldingTable({ id: 'table-b', x: 3.5, z: 2.7 });
+// Two 60×60×74 cm white boxes (replace the previous draped folding tables, same ids)
+addBox({ id: 'table-a', w: 0.6, d: 0.6, h: 0.74, x: 2.0, z: 2.7, color: 0xffffff, metal: false });
+addBox({ id: 'table-b', w: 0.6, d: 0.6, h: 0.74, x: 3.5, z: 2.7, color: 0xffffff, metal: false });
+
+// --- Queue poles: chrome stanchions with auto-connecting red straps ---
+const queuePoles = [];
+const queueStraps = [];
+const QUEUE_STRAP_Y = 0.92; // belt height (just below the top finial)
+
+function addQueuePole({ id, x = 0, z = 0 } = {}) {
+  const totalH = 1.0;
+  const W = 0.36, D = 0.36, H = totalH;
+  const group = new THREE.Group();
+  group.userData = { id, w: W, d: D, h: H, draggable: true };
+
+  const chromeMat = new THREE.MeshPhysicalMaterial({
+    color: 0xe2e6ea, metalness: 1.0, roughness: 0.18,
+    envMap: cubeRT.texture, envMapIntensity: 1.5,
+    clearcoat: 0.4, clearcoatRoughness: 0.15,
+  });
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.5, metalness: 0.4 });
+
+  // Heavy disc base
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.018, 32), baseMat);
+  base.position.y = 0.009;
+  base.castShadow = base.receiveShadow = true;
+  group.add(base);
+
+  // Tapered chrome weight above the base
+  const weight = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.06, 24), chromeMat);
+  weight.position.y = 0.018 + 0.03;
+  weight.castShadow = true;
+  group.add(weight);
+
+  // Slim post
+  const postBaseY = 0.018 + 0.06;
+  const postH = totalH - postBaseY - 0.06; // leave room for the top spool/finial
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, postH, 16), chromeMat);
+  post.position.y = postBaseY + postH / 2;
+  post.castShadow = true;
+  group.add(post);
+
+  // Belt-spool body near the top
+  const spool = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.06, 24), chromeMat);
+  spool.position.y = totalH - 0.06;
+  spool.castShadow = true;
+  group.add(spool);
+
+  // Top finial sphere
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.04, 24, 16), chromeMat);
+  cap.position.y = totalH - 0.02;
+  cap.castShadow = true;
+  group.add(cap);
+
+  const saved = savedLayout[id];
+  if (saved) {
+    group.position.set(saved.x, 0, saved.z);
+    group.rotation.y = saved.ry ?? 0;
+  } else {
+    group.position.set(x + W / 2, 0, z + D / 2);
+  }
+  scene.add(group);
+  furniture.push(group);
+  queuePoles.push(group);
+  return group;
+}
+
+function makeQueueStrap() {
+  const geom = new THREE.BoxGeometry(1, 0.025, 0.012); // unit length, scaled per frame
+  const mat  = new THREE.MeshStandardMaterial({ color: 0xc02020, roughness: 0.6, metalness: 0.05 });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.castShadow = true;
+  nonPickable(mesh); // straps shouldn't capture drag clicks
+  scene.add(mesh);
+  return mesh;
+}
+
+addQueuePole({ id: 'qp-1', x: 1.2, z: 0.6 });
+addQueuePole({ id: 'qp-2', x: 2.0, z: 0.6 });
+addQueuePole({ id: 'qp-3', x: 2.0, z: 1.4 });
+addQueuePole({ id: 'qp-4', x: 1.2, z: 1.4 });
+// 4 straps form a closed loop (1→2→3→4→1)
+for (let i = 0; i < 4; i++) queueStraps.push(makeQueueStrap());
+
 
 // --- Standing display box (white plinth + glass cover) ---
 function addDisplayBox({ id, x = 0, z = 0 } = {}) {
@@ -1761,9 +1842,23 @@ window.addEventListener('resize', () => {
 // --- Loop ---
 const ROT_PER_SEC = Math.PI / 180; // 1°/s
 let reflectFrame = 0;
+function updateQueueStraps() {
+  const n = queuePoles.length;
+  for (let i = 0; i < queueStraps.length; i++) {
+    const a = queuePoles[i].position;
+    const b = queuePoles[(i + 1) % n].position;
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const len = Math.hypot(dx, dz);
+    const s = queueStraps[i];
+    s.position.set((a.x + b.x) / 2, QUEUE_STRAP_Y, (a.z + b.z) / 2);
+    s.scale.x = Math.max(len, 0.001);
+    s.rotation.y = -Math.atan2(dz, dx);
+  }
+}
 function tick() {
   const dt = animClock.getDelta();
   for (const o of animatedItems) o.rotation.y += ROT_PER_SEC * dt;
+  updateQueueStraps();
   // Refresh the scene reflection every other frame to keep cost reasonable.
   if ((reflectFrame++ & 1) === 0) cubeCam.update(renderer, scene);
   controls.update();
