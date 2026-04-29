@@ -39,6 +39,7 @@
   <button id="view-front">Front</button>
   <button id="toggle-grid" class="active">Grid</button>
   <button id="toggle-ygrid">Y grid</button>
+  <button id="toggle-iso">Iso</button>
   <button id="reset-layout" title="Clear saved layout and reload with defaults">Reset</button>
 </div>
 
@@ -168,7 +169,7 @@ function makeScreenMaterial({ path = null, videoEl = null, mirror = false, inten
   });
 }
 
-// --- Camera ---
+// --- Cameras ---
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
 camera.position.set(7, 6, 7);
 
@@ -176,12 +177,42 @@ camera.position.set(7, 6, 7);
 // Floor spans X: 0..6, Z: 0..3. Center for orbit target:
 const center = new THREE.Vector3(ROOM_W / 2, 0, ROOM_D / 2);
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.copy(center);
-controls.enableDamping = true;
-controls.maxPolarAngle = Math.PI / 2 - 0.01;
-controls.minDistance = 2;
-controls.maxDistance = 40;
+// Orthographic camera for the iso/non-perspective mode.
+// Standard isometric: ~35.26° elevation, 45° azimuth.
+const isoCamera = new THREE.OrthographicCamera();
+isoCamera.near = -50; isoCamera.far = 100;
+function fitIsoFrustum() {
+  const halfH = 4; // controls how much of the scene is visible vertically
+  const halfW = halfH * window.innerWidth / window.innerHeight;
+  isoCamera.left = -halfW; isoCamera.right = halfW;
+  isoCamera.top  =  halfH; isoCamera.bottom = -halfH;
+  isoCamera.updateProjectionMatrix();
+}
+fitIsoFrustum();
+{
+  const dist = 15;
+  const elev = Math.atan(1 / Math.SQRT2); // ≈ 35.26° for true isometric
+  const azim = Math.PI / 4;               // 45°
+  isoCamera.position.set(
+    center.x + dist * Math.cos(elev) * Math.sin(azim),
+              dist * Math.sin(elev),
+    center.z + dist * Math.cos(elev) * Math.cos(azim),
+  );
+  isoCamera.lookAt(center);
+}
+
+let activeCamera = camera;
+let controls;
+function bindControls(cam) {
+  if (controls) controls.dispose();
+  controls = new OrbitControls(cam, renderer.domElement);
+  controls.target.copy(center);
+  controls.enableDamping = true;
+  controls.maxPolarAngle = Math.PI / 2 - 0.01;
+  controls.minDistance = 2;
+  controls.maxDistance = 40;
+}
+bindControls(camera);
 
 // --- Lighting ---
 const hemi = new THREE.HemisphereLight(0xffffff, 0x404050, 0.55);
@@ -419,23 +450,23 @@ const STORAGE_KEY = 'exhibition-booth-layout-v1';
 const DEFAULT_LAYOUT = {
   "light-1":   { "x":  5.2, "y": 2.8,   "z": 1.5, "ry":  0 },
   "light-2":   { "x":  2.1, "y": 2.7,   "z": 1.5, "ry":  0 },
-  "box-1":     { "x":  1.0, "y": 0,     "z": 0.9, "ry": 12.5664 },
-  "box-2":     { "x":  2.2, "y": 0,     "z": 0.8, "ry":  6.2832 },
-  "box-3":     { "x":  4.3, "y": 0.307, "z": 0.5, "ry": -2.0944 },
-  "box-4":     { "x":  4.0, "y": 0.307, "z": 1.5, "ry": -1.5708 },
-  "console-1": { "x":  5.2, "y": 0,     "z": 1.5, "ry": -1.5708 },
-  "pc-1":      { "x":  5.2, "y": 0,     "z": 2.5, "ry":  2.3562 },
-  "pc-2":      { "x":  5.4, "y": 0,     "z": 0.5, "ry":  0.7854 },
-  "table-a":   { "x":  5.3, "y": 0.37,  "z": 2.5, "ry": -0.7854 },
-  "table-b":   { "x":  5.2, "y": 0.37,  "z": 0.4, "ry":  1.0472 },
+  "box-1":     { "x":  0.9, "y": 0,     "z": 1.0, "ry": 12.5664 },
+  "box-2":     { "x":  2.2, "y": 0,     "z": 1.0, "ry":  6.2832 },
+  "box-3":     { "x":  4.1, "y": 0.307, "z": 0.5, "ry": -2.0944 },
+  "box-4":     { "x":  3.9, "y": 0.307, "z": 1.6, "ry": -1.5708 },
+  "console-1": { "x":  5.4, "y": 0,     "z": 1.5, "ry": -1.5708 },
+  "pc-1":      { "x":  5.5, "y": 0,     "z": 2.4, "ry":  2.3562 },
+  "pc-2":      { "x":  5.3, "y": 0,     "z": 0.4, "ry":  0.7854 },
+  "table-a":   { "x":  5.4, "y": 0.37,  "z": 2.5, "ry": -1.0472 },
+  "table-b":   { "x":  5.4, "y": 0.37,  "z": 0.5, "ry":  1.0472 },
   "qp-1":      { "x":  4.6, "y": 0,     "z": 0.8, "ry":  0 },
   "qp-2":      { "x":  5.2, "y": 0,     "z": 1.0, "ry":  0 },
-  "qp-3":      { "x":  5.2, "y": 0,     "z": 1.9, "ry":  0 },
+  "qp-3":      { "x":  5.2, "y": 0,     "z": 2.0, "ry":  0 },
   "qp-4":      { "x":  4.6, "y": 0,     "z": 2.2, "ry":  0 },
-  "display-2": { "x":  5.8, "y": 0,     "z": 2.9, "ry":  3.1416 },
+  "display-2": { "x":  5.8, "y": 0,     "z": 2.8, "ry": -2.618 },
   "human-1":   { "x":  1.9, "y": 0,     "z": 2.7, "ry":  4.1888 },
-  "tv-1":      { "x":  4.3, "y": 0,     "z": 2.5, "ry":  5.4978 },
-  "case-1":    { "x":  4.7, "y": 0,     "z": 1.5, "ry":  7.854 },
+  "tv-1":      { "x":  4.0, "y": 0,     "z": 2.7, "ry":  5.236 },
+  "case-1":    { "x":  4.8, "y": 0,     "z": 1.5, "ry":  7.854 },
 };
 function loadLayout() {
   try {
@@ -829,7 +860,7 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
   const R_wall = 1.55;
   const wallAngles = [-Math.PI * 40 / 180, 0, Math.PI * 40 / 180]; // ±40°
   const mW = 0.952, mH = 0.536; // landscape 43"
-  const tvCenterY = 1.92;       // screen bottom at 165 cm (1.65 + mH/2)
+  const tvCenterY = 1.54;       // screen top at 181 cm (1.81 - mH/2)
   const R_post = R_wall;
   const R_mon  = R_wall - 0.12; // TVs in front of the posts
 
@@ -863,43 +894,45 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
     op.add(post);
   }
 
-  // --- Banner above the TVs (readable from both sides) ---
+  // --- "Virtual Operator with Ai" banner + 2 supporting end-poles ---
+  // Spec: 3000mm chord × 540mm tall, 152.4mm sag (gentle convex curve).
+  // Stand: two end-poles 1820mm tall, 58mm square cross-section.
   {
-    const bannerR = R_mon;
-    const bannerH = 0.42;
-    const bannerCenterY = tvCenterY + mH / 2 + 0.10 + bannerH / 2;
-    const bannerHalf = Math.PI * 46 / 180;
+    const bannerL = 3.0;
+    const bannerSag = 0.1524;
+    const bannerH = 0.54;
+    const bannerR = ((bannerL / 2) ** 2 + bannerSag ** 2) / (2 * bannerSag); // ≈ 7.46 m
+    const bannerHalf = Math.asin(bannerL / (2 * bannerR));                   // ≈ 11.6°
+    const bannerBottomY = 1.82;
+    const bannerCenterY = bannerBottomY + bannerH / 2;
+    const chordZ = 1.5;                              // op-local Z of the pole baseline
+    const cylZ   = chordZ - bannerR * Math.cos(bannerHalf);
 
     function makeBannerCanvas(mirrored) {
       const c = document.createElement('canvas');
       c.width = 2048; c.height = 256;
       const g = c.getContext('2d');
-      const grd = g.createLinearGradient(0, 0, 0, c.height);
-      grd.addColorStop(0, '#0c1b34');
-      grd.addColorStop(1, '#081225');
-      g.fillStyle = grd;
+      g.fillStyle = '#0a1a3a';
       g.fillRect(0, 0, c.width, c.height);
       g.strokeStyle = '#1f6fb8';
-      g.lineWidth = 6;
+      g.lineWidth = 4;
       g.strokeRect(3, 3, c.width - 6, c.height - 6);
       if (mirrored) { g.translate(c.width, 0); g.scale(-1, 1); }
       g.fillStyle = '#ffd166';
-      g.font = 'bold 150px system-ui, sans-serif';
+      g.font = 'bold 130px system-ui, sans-serif';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.fillText('Virtual Operator with AI', c.width / 2, c.height / 2);
+      g.fillText('VIRTUAL OPERATOR WITH Ai', c.width / 2, c.height / 2);
       const tex = new THREE.CanvasTexture(c);
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
       return tex;
     }
-
-    const texOut = makeBannerCanvas(false);  // readable from outside (FrontSide)
-    const texIn  = makeBannerCanvas(true);   // pre-mirrored for BackSide (inside)
-
+    const texOut = makeBannerCanvas(false);
+    const texIn  = makeBannerCanvas(true);
     const geom = new THREE.CylinderGeometry(
       bannerR, bannerR, bannerH,
-      96, 1, true,
+      64, 1, true,
       -bannerHalf, bannerHalf * 2,
     );
     const matOut = new THREE.MeshStandardMaterial({
@@ -912,10 +945,23 @@ function addConsole({ id, x = 0, z = 0 } = {}) {
     });
     const bannerOut = new THREE.Mesh(geom, matOut);
     const bannerIn  = new THREE.Mesh(geom, matIn);
-    bannerOut.position.y = bannerCenterY;
-    bannerIn.position.y  = bannerCenterY;
+    bannerOut.position.set(0, bannerCenterY, cylZ);
+    bannerIn.position.set(0, bannerCenterY, cylZ);
     bannerOut.castShadow = true;
     op.add(bannerOut, bannerIn);
+
+    // Two supporting poles at the banner's chord endpoints
+    const poleSize = 0.058;
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x0a1a3a, roughness: 0.6, metalness: 0.1 });
+    for (const sign of [-1, 1]) {
+      const pole = new THREE.Mesh(
+        new THREE.BoxGeometry(poleSize, bannerBottomY, poleSize),
+        poleMat,
+      );
+      pole.position.set(sign * (bannerL / 2), bannerBottomY / 2, chordZ);
+      pole.castShadow = true;
+      op.add(pole);
+    }
   }
 
   const saved = savedLayout[id];
@@ -1632,7 +1678,7 @@ function setPointerNDC(clientX, clientY) {
 
 function pickFurniture(clientX, clientY) {
   setPointerNDC(clientX, clientY);
-  raycaster.setFromCamera(pointer, camera);
+  raycaster.setFromCamera(pointer, activeCamera);
   const hits = raycaster.intersectObjects(furniture, true);
   if (!hits.length) return null;
   const roots = new Set(furniture);
@@ -1676,7 +1722,7 @@ function onMouseMove(e) {
   if (!drag.obj) return;
   if (e.buttons === 0) { onMouseUp(e); return; }
   setPointerNDC(e.clientX, e.clientY);
-  raycaster.setFromCamera(pointer, camera);
+  raycaster.setFromCamera(pointer, activeCamera);
   const plane = drag.mode === 'light' ? drag.lightPlane : dragPlane;
   if (!raycaster.ray.intersectPlane(plane, hitPoint)) return;
 
@@ -1825,6 +1871,15 @@ yGridBtn.onclick = () => {
   yGridBtn.classList.toggle('active', yGrid.visible);
 };
 
+const isoBtn = document.getElementById('toggle-iso');
+isoBtn.onclick = () => {
+  const turningOn = activeCamera === camera;
+  activeCamera = turningOn ? isoCamera : camera;
+  if (turningOn) fitIsoFrustum();
+  bindControls(activeCamera);
+  isoBtn.classList.toggle('active', turningOn);
+};
+
 const resetBtn = document.getElementById('reset-layout');
 resetBtn.onclick = () => {
   if (!confirm('Clear saved layout and reload with the default positions?')) return;
@@ -1836,6 +1891,7 @@ resetBtn.onclick = () => {
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+  fitIsoFrustum();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
@@ -1862,7 +1918,7 @@ function tick() {
   // Refresh the scene reflection every other frame to keep cost reasonable.
   if ((reflectFrame++ & 1) === 0) cubeCam.update(renderer, scene);
   controls.update();
-  renderer.render(scene, camera);
+  renderer.render(scene, activeCamera);
   requestAnimationFrame(tick);
 }
 tick();
