@@ -291,14 +291,15 @@ export function armMonitor({ diagIn = 15.6, aspect = 16 / 9, clampZ = 0.12 } = {
   return { object: group, meta: { w: sw + bezel * 2, d: clampZ + 0.03, h: 0.4, screenH: sh + bezel * 2, clampZ } };
 }
 
-// Andon Watch display: glowing acrylic block with `count` watches on pillow stands.
+// Andon Watch display: white light-up box (blue "Andon Watch" text) with `count` watches, each on a
+// clear acrylic "C" stand with its thin strap wrapped around it.
 function andonBlockCanvas(wMm, hMm) {
   const k = 8;
   const [c, g] = makeCanvas(wMm * k, hMm * k);
   g.scale(k, k);
-  g.fillStyle = '#eaf3ff'; g.fillRect(0, 0, wMm, hMm);
-  g.fillStyle = 'rgba(70,110,170,0.55)';
-  g.font = '600 20px Arial, Helvetica, sans-serif';
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, wMm, hMm);           // white light box face
+  g.fillStyle = '#1f5fd6';                                         // blue lettering
+  g.font = '700 24px Arial, Helvetica, sans-serif';
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText('Andon Watch', wMm / 2, hMm / 2 + 1);
   return c;
@@ -315,39 +316,54 @@ function watchScreenCanvas(color) {
   g.fillText('12:48', 64, 120);
   return c;
 }
+// Curved band (part of a ring) around the X axis: angle 0 = front (+Z), 90° = top, 180° = back,
+// 270° = bottom. Built from an outer + inner open cylinder so it has a little thickness.
+function band(radius, width, thick, startDeg, lengthDeg, mat) {
+  const g = new THREE.Group();
+  const s = THREE.MathUtils.degToRad(startDeg), l = THREE.MathUtils.degToRad(lengthDeg);
+  for (const r of [radius + thick, radius]) {
+    g.add(new THREE.Mesh(new THREE.CylinderGeometry(r, r, width, 48, 1, true, s, l).rotateZ(Math.PI / 2), mat));
+  }
+  return g;
+}
 export function andonWatchDisplay({ count = 4 } = {}) {
   const W = 0.36, D = 0.08, H = 0.05;
-  const R = 0.026, tube = 0.008, pitch = 0.085;
+  const R = 0.026, pitch = 0.085;                       // C-stand radius, watch spacing
+  const standW = 0.024, standT = 0.002;                 // clear acrylic "C" band
+  const strapW = 0.018, strapT = 0.0015;                // thin flat watch strap
   const group = new THREE.Group();
-  const glow = std({ color: 0xeaf3ff, emissive: 0xcfe4ff, emissiveIntensity: 1.1, roughness: 0.2 });
+  // White light-up box; the front face carries blue text (lit from inside, so the text glows blue)
+  const glow = std({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.85, roughness: 0.25 });
   const frontTex = canvasTex(andonBlockCanvas(360, 50));
-  const front = std({ map: frontTex, emissive: 0xffffff, emissiveMap: frontTex, emissiveIntensity: 1.0, roughness: 0.2 });
+  const front = std({ map: frontTex, emissive: 0xffffff, emissiveMap: frontTex, emissiveIntensity: 0.85, roughness: 0.25 });
   const block = tag(new THREE.Mesh(new THREE.BoxGeometry(W, H, D), [glow, glow, glow, glow, front, glow]), { noShadow: true });
   block.position.y = H / 2;
   group.add(block);
-  const strapMat = std({ color: 0x18181b, roughness: 0.55 });
+  const acrylic = std({ color: 0xe8f2ff, transparent: true, opacity: 0.35, roughness: 0.05, metalness: 0, side: THREE.DoubleSide });
+  const strapMat = std({ color: 0x18181b, roughness: 0.6, side: THREE.DoubleSide });
   const caseMat = std({ color: 0x2a2b30, roughness: 0.3, metalness: 0.7 });
-  const pillowMat = std({ color: 0x0e0e10, roughness: 0.7 });
   const status = ['#22c55e', '#f59e0b', '#ef4444', '#22c55e'];
-  const cy = H + R + tube;
+  const cy = H + R;                                     // C rests on the box at its lowest point
   for (let i = 0; i < count; i++) {
     const watch = new THREE.Group();
     watch.position.set((i - (count - 1) / 2) * pitch, cy, 0);
-    const strap = new THREE.Mesh(new THREE.TorusGeometry(R, tube, 12, 32).rotateY(Math.PI / 2), strapMat);
-    strap.scale.set(1, 1.08, 0.92);
-    const pillow = new THREE.Mesh(new THREE.CylinderGeometry(R - tube * 0.6, R - tube * 0.6, 0.026, 20).rotateZ(Math.PI / 2), pillowMat);
+    // "C" stand: open at the back-bottom (gap 185°–265°), lowest point (270°) on the box
+    const stand = band(R, standW, standT, 265, 280, acrylic);
+    stand.traverse(o => tag(o, { noPick: true, noShadow: true }));
+    // Thin strap wrapped around the outside of the C (ends tuck into the gap)
+    const strap = band(R + standT + 0.0003, strapW, strapT, 268, 274, strapMat);
     const caseM = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.044, 0.011), caseMat);
-    caseM.position.z = R * 0.92 + 0.004;
+    caseM.position.z = R + standT + strapT + 0.0055;
     const scrTex = canvasTex(watchScreenCanvas(status[i % status.length]));
     const screen = tag(new THREE.Mesh(new THREE.PlaneGeometry(0.032, 0.036),
       std({ map: scrTex, emissive: 0xffffff, emissiveMap: scrTex, emissiveIntensity: 0.8, roughness: 0.2 })), { noShadow: true });
     screen.position.z = caseM.position.z + 0.0056;
     const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.004, 10).rotateZ(Math.PI / 2), caseMat);
     crown.position.set(0.021, 0.006, caseM.position.z);
-    watch.add(strap, pillow, caseM, screen, crown);
+    watch.add(stand, strap, caseM, screen, crown);
     group.add(watch);
   }
-  return { object: group, meta: { w: W, d: D, h: H + 2 * (R + tube) } };
+  return { object: group, meta: { w: W, d: D, h: H + 2 * (R + standT + strapT) } };
 }
 
 // Foldable round table: tilt-top, column + disc base, all white.
