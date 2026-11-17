@@ -1,0 +1,922 @@
+{
+  "meta": {
+    "id": "japan2026",
+    "title": "Japan 2026",
+    "subtitle": "Booth design",
+    "storageKey": "exhibition-japan2026-layout-v1"
+  },
+  "room": {
+    "w": 3,
+    "d": 3,
+    "h": 2.706,
+    "wallT": 0.08,
+    "bounds": [
+      -5,
+      8
+    ],
+    "lightY": [
+      0.2,
+      4.0
+    ]
+  },
+  "scene": {
+    "background": "#3a4048",
+    "fog": [
+      20,
+      60
+    ],
+    "hemi": {
+      "sky": "#ffffff",
+      "ground": "#404050",
+      "intensity": 0.55
+    },
+    "sun": {
+      "position": [
+        5,
+        10,
+        6
+      ],
+      "intensity": 1.1,
+      "mapSize": 2048,
+      "extent": 8,
+      "radius": 8
+    }
+  },
+  "floor": {
+    "carpet": "mid-grey",
+    "tint": "#a8a8a8",
+    "bumpScale": 0.6,
+    "roughness": 1,
+    "edgeColor": "#ffd166"
+  },
+  "walls": [
+    {
+      "name": "back",
+      "size": [
+        3,
+        2.706,
+        0.08
+      ],
+      "position": [
+        1.5,
+        1.353,
+        0.04
+      ],
+      "color": "#f2f2f0"
+    },
+    {
+      "name": "left",
+      "size": [
+        0.08,
+        2.706,
+        2.92
+      ],
+      "position": [
+        0.04,
+        1.353,
+        1.54
+      ],
+      "color": "#f2f2f0"
+    },
+    {
+      "name": "right",
+      "size": [
+        0.08,
+        2.706,
+        2.92
+      ],
+      "position": [
+        2.96,
+        1.353,
+        1.54
+      ],
+      "color": "#f2f2f0"
+    }
+  ],
+  "fascias": [
+    {
+      "style": "logo-box",
+      "text": "BioEnergy Projects Sdn Bhd",
+      "size": [
+        3,
+        0.3,
+        0.03
+      ],
+      "position": [
+        1.5,
+        2.556,
+        2.985
+      ],
+      "rotationY": 0,
+      "color": "#1d3f8f"
+    }
+  ],
+  "poles": [],
+  "boothInfo": [
+    [
+      "Walls",
+      "Back, left, right"
+    ],
+    [
+      "Open side",
+      "Front"
+    ],
+    [
+      "Floor",
+      "Mid-grey carpet"
+    ],
+    [
+      "Fascia",
+      "BioEnergy Projects Sdn Bhd"
+    ]
+  ],
+  "guides": {
+    "grid": {
+      "size": 20,
+      "divisions": 20,
+      "position": [
+        0,
+        -0.0005,
+        0
+      ]
+    },
+    "yMax": 3.0
+  },
+  "views": {
+    "default": "front",
+    "center": [
+      1.5,
+      1.2,
+      1.5
+    ],
+    "iso": {
+      "halfH": 3,
+      "dist": 15
+    },
+    "persp": [
+      6,
+      4.5,
+      7
+    ],
+    "top": [
+      1.5,
+      9,
+      1.501
+    ],
+    "front": [
+      1.5,
+      1.6,
+      8
+    ],
+    "visitor": {
+      "item": "fan-1",
+      "eyeY": 1.7,
+      "dist": 1.6,
+      "targetY": 1.0,
+      "tooltip": "Visitor view: standing in front of the 3D fan"
+    }
+  },
+  "screenSources": {
+    "display": {
+      "label": "Display video",
+      "video": "assets/display.mp4"
+    },
+    "saw": {
+      "label": "Wafer saw video",
+      "video": "assets/saw.mp4"
+    },
+    "img6": {
+      "label": "Dashboard image (6.jpeg)",
+      "image": "assets/6.jpeg"
+    },
+    "img3": {
+      "label": "Screen image (3.jpg)",
+      "image": "assets/3.jpg"
+    },
+    "twin": {
+      "label": "UNYSIS digital twin",
+      "image": "assets/digitaltwin.jpg"
+    }
+  },
+  "graphicSources": {
+    "posters": {
+      "placeholder": {
+        "label": "Placeholder (drawn)",
+        "canvas": "unysis-poster"
+      },
+      "A01": {
+        "label": "A01 — Andon Watch",
+        "image": "assets/concepts/v2/A01.jpg"
+      },
+      "A02": {
+        "label": "A02 — Andon Watch",
+        "image": "assets/concepts/v2/A02.jpg"
+      },
+      "A03": {
+        "label": "A03 — Andon Watch",
+        "image": "assets/concepts/v2/A03.jpg"
+      },
+      "A04": {
+        "label": "A04 — Andon Watch",
+        "image": "assets/concepts/v2/A04.jpg"
+      },
+      "A05": {
+        "label": "A05 — Andon Watch",
+        "image": "assets/concepts/v2/A05.jpg"
+      },
+      "A06": {
+        "label": "A06 — Andon Watch",
+        "image": "assets/concepts/v2/A06.jpg"
+      },
+      "A07": {
+        "label": "A07 — Andon Watch",
+        "image": "assets/concepts/v2/A07.jpg"
+      },
+      "A08": {
+        "label": "A08 — Andon Watch",
+        "image": "assets/concepts/v2/A08.jpg"
+      },
+      "A09": {
+        "label": "A09 — Andon Watch",
+        "image": "assets/concepts/v2/A09.jpg"
+      },
+      "A10": {
+        "label": "A10 — Andon Watch",
+        "image": "assets/concepts/v2/A10.jpg"
+      },
+      "A11": {
+        "label": "A11 — Andon Watch",
+        "image": "assets/concepts/v2/A11.jpg"
+      },
+      "A12": {
+        "label": "A12 — Andon Watch",
+        "image": "assets/concepts/v2/A12.jpg"
+      },
+      "A13": {
+        "label": "A13 — Andon Watch",
+        "image": "assets/concepts/v2/A13.jpg"
+      },
+      "A14": {
+        "label": "A14 — Andon Watch",
+        "image": "assets/concepts/v2/A14.jpg"
+      },
+      "A15": {
+        "label": "A15 — Andon Watch",
+        "image": "assets/concepts/v2/A15.jpg"
+      },
+      "A16": {
+        "label": "A16 — Andon Watch",
+        "image": "assets/concepts/v2/A16.jpg"
+      },
+      "A17": {
+        "label": "A17 — Andon Watch",
+        "image": "assets/concepts/v2/A17.jpg"
+      },
+      "A18": {
+        "label": "A18 — Andon Watch",
+        "image": "assets/concepts/v2/A18.jpg"
+      },
+      "A19": {
+        "label": "A19 — Andon Watch",
+        "image": "assets/concepts/v2/A19.jpg"
+      },
+      "A20": {
+        "label": "A20 — Andon Watch",
+        "image": "assets/concepts/v2/A20.jpg"
+      },
+      "U01": {
+        "label": "U01 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U01.jpg"
+      },
+      "U02": {
+        "label": "U02 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U02.jpg"
+      },
+      "U03": {
+        "label": "U03 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U03.jpg"
+      },
+      "U04": {
+        "label": "U04 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U04.jpg"
+      },
+      "U05": {
+        "label": "U05 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U05.jpg"
+      },
+      "U06": {
+        "label": "U06 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U06.jpg"
+      },
+      "U07": {
+        "label": "U07 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U07.jpg"
+      },
+      "U08": {
+        "label": "U08 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U08.jpg"
+      },
+      "U09": {
+        "label": "U09 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U09.jpg"
+      },
+      "U10": {
+        "label": "U10 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U10.jpg"
+      },
+      "U11": {
+        "label": "U11 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U11.jpg"
+      },
+      "U12": {
+        "label": "U12 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U12.jpg"
+      },
+      "U13": {
+        "label": "U13 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U13.jpg"
+      },
+      "U14": {
+        "label": "U14 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U14.jpg"
+      },
+      "U15": {
+        "label": "U15 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U15.jpg"
+      },
+      "U16": {
+        "label": "U16 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U16.jpg"
+      },
+      "U17": {
+        "label": "U17 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U17.jpg"
+      },
+      "U18": {
+        "label": "U18 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U18.jpg"
+      },
+      "U19": {
+        "label": "U19 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U19.jpg"
+      },
+      "U20": {
+        "label": "U20 — UNYSIS Edge AI Controller",
+        "image": "assets/concepts/v2/U20.jpg"
+      }
+    },
+    "banners": {
+      "original": {
+        "label": "Original banner",
+        "image": "assets/japan2026-banner.jpg"
+      },
+      "B01": {
+        "label": "B01 — AI virtual operator",
+        "image": "assets/concepts/v2/B01.jpg"
+      },
+      "B02": {
+        "label": "B02 — AI virtual operator",
+        "image": "assets/concepts/v2/B02.jpg"
+      },
+      "B03": {
+        "label": "B03 — AI virtual operator",
+        "image": "assets/concepts/v2/B03.jpg"
+      },
+      "B04": {
+        "label": "B04 — AI virtual operator",
+        "image": "assets/concepts/v2/B04.jpg"
+      },
+      "B05": {
+        "label": "B05 — AI virtual operator",
+        "image": "assets/concepts/v2/B05.jpg"
+      },
+      "B06": {
+        "label": "B06 — AI virtual operator",
+        "image": "assets/concepts/v2/B06.jpg"
+      },
+      "B07": {
+        "label": "B07 — AI virtual operator",
+        "image": "assets/concepts/v2/B07.jpg"
+      },
+      "B08": {
+        "label": "B08 — AI virtual operator",
+        "image": "assets/concepts/v2/B08.jpg"
+      },
+      "B09": {
+        "label": "B09 — AI virtual operator",
+        "image": "assets/concepts/v2/B09.jpg"
+      },
+      "B10": {
+        "label": "B10 — AI virtual operator",
+        "image": "assets/concepts/v2/B10.jpg"
+      },
+      "B11": {
+        "label": "B11 — AI virtual operator",
+        "image": "assets/concepts/v2/B11.jpg"
+      },
+      "B12": {
+        "label": "B12 — AI virtual operator",
+        "image": "assets/concepts/v2/B12.jpg"
+      },
+      "B13": {
+        "label": "B13 — AI virtual operator",
+        "image": "assets/concepts/v2/B13.jpg"
+      },
+      "B14": {
+        "label": "B14 — AI virtual operator",
+        "image": "assets/concepts/v2/B14.jpg"
+      },
+      "B15": {
+        "label": "B15 — AI virtual operator",
+        "image": "assets/concepts/v2/B15.jpg"
+      },
+      "B16": {
+        "label": "B16 — AI virtual operator",
+        "image": "assets/concepts/v2/B16.jpg"
+      },
+      "B17": {
+        "label": "B17 — AI virtual operator",
+        "image": "assets/concepts/v2/B17.jpg"
+      },
+      "B18": {
+        "label": "B18 — AI virtual operator",
+        "image": "assets/concepts/v2/B18.jpg"
+      },
+      "B19": {
+        "label": "B19 — AI virtual operator",
+        "image": "assets/concepts/v2/B19.jpg"
+      },
+      "B20": {
+        "label": "B20 — AI virtual operator",
+        "image": "assets/concepts/v2/B20.jpg"
+      }
+    }
+  },
+  "queues": [
+    {
+      "poles": [
+        "qp-1",
+        "qp-2"
+      ],
+      "closed": false
+    }
+  ],
+  "groups": [
+    [
+      "booth",
+      "light-1",
+      "light-2"
+    ],
+    [
+      "banner-1",
+      "poster-left",
+      "poster-right"
+    ],
+    [
+      "tv-1",
+      "tv-2",
+      "tv-3",
+      "fan-1",
+      "qp-1",
+      "qp-2"
+    ],
+    [
+      "counter-1",
+      "monitor-1",
+      "unisys-1",
+      "unisys-2",
+      "andon-1"
+    ],
+    [
+      "table-1",
+      "brochures-1",
+      "chair-1",
+      "chair-2",
+      "chair-3"
+    ]
+  ],
+  "items": [
+    {
+      "id": "light-1",
+      "name": "Spot light 1",
+      "icon": "light",
+      "light": {
+        "x": 0.8,
+        "y": 2.5,
+        "z": 1.5,
+        "intensity": 12
+      }
+    },
+    {
+      "id": "light-2",
+      "name": "Spot light 2",
+      "icon": "light",
+      "light": {
+        "x": 2.2,
+        "y": 2.5,
+        "z": 1.5,
+        "intensity": 12
+      }
+    },
+    {
+      "id": "poster-left",
+      "name": "Unysis poster A0 (left wall)",
+      "icon": "poster",
+      "model": "wall-poster-a0",
+      "wall": {
+        "side": "left",
+        "bottom": 0.9
+      },
+      "at": {
+        "z": 1.5
+      },
+      "graphic": {
+        "sources": "posters",
+        "default": "placeholder",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "poster-right",
+      "name": "Unysis poster A0 (right wall)",
+      "icon": "poster",
+      "model": "wall-poster-a0",
+      "wall": {
+        "side": "right",
+        "bottom": 0.9
+      },
+      "at": {
+        "z": 0.85
+      },
+      "graphic": {
+        "sources": "posters",
+        "default": "placeholder",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "fan-1",
+      "name": "3D hologram fan display",
+      "icon": "fan",
+      "model": "hologram-fan",
+      "at": {
+        "x": 1.5,
+        "z": 1.7
+      },
+      "hologram": {
+        "image": "assets/operator.jpeg",
+        "video": "assets/operator.mp4"
+      }
+    },
+    {
+      "id": "counter-1",
+      "name": "Reception counter",
+      "icon": "counter",
+      "model": "counter",
+      "at": {
+        "x": 0.8,
+        "z": 2.6
+      }
+    },
+    {
+      "id": "banner-1",
+      "name": "Backdrop banner",
+      "icon": "banner",
+      "model": "framed-banner",
+      "at": {
+        "x": 1.5,
+        "z": 0.11
+      },
+      "graphic": {
+        "sources": "banners",
+        "default": "original",
+        "roughness": 0.8
+      }
+    },
+    {
+      "id": "qp-1",
+      "name": "Barrier pole 1",
+      "icon": "pole",
+      "model": "queue-pole",
+      "at": {
+        "x": 1.05,
+        "z": 2.2
+      }
+    },
+    {
+      "id": "qp-2",
+      "name": "Barrier pole 2",
+      "icon": "pole",
+      "model": "queue-pole",
+      "at": {
+        "x": 1.95,
+        "z": 2.2
+      }
+    },
+    {
+      "id": "unisys-1",
+      "name": "Unysis box 1",
+      "icon": "box3d",
+      "model": "unysis9r",
+      "parent": "counter-1",
+      "at": {
+        "x": -0.36,
+        "z": 0.05
+      }
+    },
+    {
+      "id": "unisys-2",
+      "name": "Unysis box 2",
+      "icon": "box3d",
+      "model": "unysis9r",
+      "parent": "counter-1",
+      "at": {
+        "x": -0.2,
+        "z": 0.05
+      }
+    },
+    {
+      "id": "monitor-1",
+      "name": "15.6\" monitor on swivel arm",
+      "icon": "monitor",
+      "model": "arm-monitor",
+      "parent": "counter-1",
+      "at": {
+        "x": 0.15,
+        "z": 0
+      },
+      "arm": {
+        "swivel": 0,
+        "a1": 20,
+        "a2": -10
+      },
+      "screen": {
+        "default": "img6",
+        "intensity": 0.45,
+        "roughness": 0.25
+      }
+    },
+    {
+      "id": "andon-1",
+      "name": "Andon Watch display (4 units)",
+      "icon": "watch",
+      "model": "andon-watch-display",
+      "parent": "counter-1",
+      "at": {
+        "x": -0.24,
+        "z": 0.17
+      }
+    },
+    {
+      "id": "table-1",
+      "name": "Foldable round table Ø750",
+      "icon": "table",
+      "model": "round-table",
+      "at": {
+        "x": 2.2,
+        "z": 2.45
+      }
+    },
+    {
+      "id": "brochures-1",
+      "name": "Brochure stacks (3 × A4)",
+      "icon": "brochures",
+      "model": "brochure-stacks",
+      "parent": "table-1",
+      "at": {
+        "x": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "chair-1",
+      "name": "Folding chair 1",
+      "icon": "chair",
+      "model": "folding-chair",
+      "at": {
+        "x": 2.2,
+        "z": 3.0,
+        "ry": 3.1416
+      }
+    },
+    {
+      "id": "chair-2",
+      "name": "Folding chair 2",
+      "icon": "chair",
+      "model": "folding-chair",
+      "at": {
+        "x": 2.5535,
+        "z": 2.0287,
+        "ry": 5.5851
+      }
+    },
+    {
+      "id": "chair-3",
+      "name": "Folding chair 3",
+      "icon": "chair",
+      "model": "folding-chair",
+      "at": {
+        "x": 1.6584,
+        "z": 2.3545,
+        "ry": 7.6794
+      }
+    },
+    {
+      "id": "tv-1",
+      "name": "42\" TV with stand (1)",
+      "icon": "tv",
+      "model": "tv-42",
+      "at": {
+        "x": 0.8,
+        "z": 0.4
+      },
+      "screen": {
+        "default": "display"
+      }
+    },
+    {
+      "id": "tv-2",
+      "name": "55\" TV with stand (2)",
+      "icon": "tv",
+      "model": "tv-55",
+      "at": {
+        "x": 2.2,
+        "z": 0.4
+      },
+      "screen": {
+        "default": "display"
+      }
+    },
+    {
+      "id": "tv-3",
+      "name": "42\" TV with stand (3)",
+      "icon": "tv",
+      "model": "tv-42",
+      "at": {
+        "x": 2.6,
+        "z": 1.8,
+        "ry": -1.5708
+      },
+      "screen": {
+        "default": "display"
+      }
+    }
+  ],
+  "defaultLayout": {
+    "light-1": {
+      "x": 0.6,
+      "y": 3.1,
+      "z": 1.5,
+      "ry": 0,
+      "locked": true
+    },
+    "light-2": {
+      "x": 2.3,
+      "y": 3.1,
+      "z": 1.5,
+      "ry": 0,
+      "locked": true
+    },
+    "poster-left": {
+      "x": 0.083,
+      "y": 1.494,
+      "z": 2.2,
+      "ry": 1.5708,
+      "graphic": "A01"
+    },
+    "poster-right": {
+      "x": 2.917,
+      "y": 1.494,
+      "z": 2.4,
+      "ry": -1.5708,
+      "graphic": "U01"
+    },
+    "fan-1": {
+      "x": 1.5,
+      "y": 0,
+      "z": 1.3,
+      "ry": 0,
+      "locked": true
+    },
+    "counter-1": {
+      "x": 0.6,
+      "y": 0,
+      "z": 2.7,
+      "ry": 0,
+      "locked": true
+    },
+    "banner-1": {
+      "x": 1.5,
+      "y": 0,
+      "z": 0.4,
+      "ry": 0,
+      "locked": true,
+      "graphic": "B01"
+    },
+    "qp-1": {
+      "x": 0.8,
+      "y": 0,
+      "z": 1.6,
+      "ry": 0,
+      "locked": true
+    },
+    "qp-2": {
+      "x": 2.2,
+      "y": 0,
+      "z": 1.6,
+      "ry": 0,
+      "locked": true
+    },
+    "unisys-1": {
+      "x": 0.35,
+      "y": 0.8,
+      "z": 0.06,
+      "ry": 0,
+      "local": true
+    },
+    "unisys-2": {
+      "x": 0.19,
+      "y": 0.8,
+      "z": 0.06,
+      "ry": 0,
+      "local": true
+    },
+    "monitor-1": {
+      "x": 0.1,
+      "y": 0.8,
+      "z": -0.105,
+      "ry": 0,
+      "screen": "saw",
+      "local": true,
+      "arm": {
+        "swivel": 20,
+        "a1": 15,
+        "a2": 30
+      }
+    },
+    "andon-1": {
+      "x": -0.2,
+      "y": 0.8,
+      "z": -0.05,
+      "ry": 0,
+      "local": true
+    },
+    "table-1": {
+      "x": 2.5,
+      "y": 0,
+      "z": 2.5,
+      "ry": 0
+    },
+    "brochures-1": {
+      "x": -0.025,
+      "y": 0.7,
+      "z": 0,
+      "ry": 0,
+      "local": true
+    },
+    "chair-1": {
+      "x": 4.5,
+      "y": 0,
+      "z": 2.6,
+      "ry": 3.1416,
+      "hidden": true
+    },
+    "chair-2": {
+      "x": 2.6,
+      "y": 0,
+      "z": 2,
+      "ry": -0.2618
+    },
+    "chair-3": {
+      "x": 3.7,
+      "y": 0,
+      "z": 2.6,
+      "ry": 7.3304,
+      "hidden": true
+    },
+    "tv-1": {
+      "x": 2.5,
+      "y": 0,
+      "z": 1.1,
+      "ry": -7.0686,
+      "screen": "display",
+      "locked": true
+    },
+    "tv-2": {
+      "x": 1.5,
+      "y": 0,
+      "z": 0.7,
+      "ry": 12.5664,
+      "screen": "twin",
+      "locked": true
+    },
+    "tv-3": {
+      "x": 0.5,
+      "y": 0,
+      "z": 1.1,
+      "ry": 1.0472,
+      "screen": "img3",
+      "locked": true
+    }
+  }
+}

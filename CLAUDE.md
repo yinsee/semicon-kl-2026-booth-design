@@ -4,51 +4,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Single-file interactive WebGL visualization of a 6 × 3 m exhibition booth built with Three.js (loaded from jsDelivr CDN via an import map). There is no build step or package manager — the entire app lives in `index.html`.
+Single-page WebGL booth editor (Three.js r161 from jsDelivr via an import map, ES modules, no build
+step, no package manager). `index.html` shows a project menu; `#/<id>` opens `projects/<id>.json` in the
+editor. The editor UI and behaviour are the former `japan2026.html` editor ("Japan UI" is the standard).
+`japan2026.html` is only a redirect to `index.html#/japan2026`.
 
 ## Running
 
 ```
 python3 -m http.server 8000   # then open http://localhost:8000
 ```
-
-Opening `index.html` directly with `file://` also works because all imports resolve via CDN; no bundler, no npm install.
+A server is required (`fetch` of JSON / GLB); `file://` does not work.
 
 ## Architecture
 
-Three conceptual layers inside `index.html`:
+```
+index.html              UI shell (top bar, Items pane, Properties pane, status bar, menu) + import map
+js/main.js              hash router: #/ → menu (projects/index.json), #/<id> → openProject()
+js/engine/engine.js     initEngine() once; openProject(json) / closeProject()
+js/engine/core.js       C: renderer, perspective + iso cameras, OrbitControls (orbit / visitor 'look'),
+                        composer (RenderPass → OutlinePass → OutputPass), resize, render loop
+js/engine/state.js      S: state of the open project (scene, booth, furniture[], queues, undo, selection)
+js/engine/shell.js      booth shell + lights + guides from JSON; disposeScene()
+js/engine/models.js     manifest.json + GLB cache; addModel(root, name, onReady(roles, model))
+js/engine/items.js      items from JSON: lights, floor items, wall items, anchored items (placeOnSurface),
+                        monitor arm (updateArm), queue belts (updateQueueStraps)
+js/engine/media.js      screen / graphic / hologram textures + video elements; canvas textures (carpet, fascia)
+js/engine/layout.js     localStorage load / save, undo, applyLayoutState
+js/engine/interact.js   picking + drag modes (move, rotate, light, wall, surface, surface-rotate, swivel)
+js/engine/ui.js         Items list, Properties pane, status bar, panes, views, toggles, reset
+```
+Modules import each other in a cycle (core ↔ items, layout ↔ ui ↔ interact); this is fine because no
+module uses another at top level — keep it that way (only declarations at module top level).
 
-1. **Static scene** — renderer, PMREM-baked `RoomEnvironment`, lights, floor (procedural carpet texture drawn onto a canvas), walls (`addWall`), pole + double-sided fascia, and the diagonal-banner-style signage. Dimensions live in module-level constants near the top (`ROOM_W`, `ROOM_D`, `WALL_H`, …).
+### Open order (engine.openProject) — keep it
+layout → `buildScene` (shell, guides) → `buildItems` (parents before children, then queue belts) →
+locked / hidden from layout → `clampAll` → `saveLayout()` (undo baseline, no undo entry) → cameras + default
+view → Items list + empty Properties. `closeProject` disposes the scene (except cloned GLB data, which the
+model cache shares), stops / removes project videos and resets `S`.
 
-2. **Furniture factories** — each factory function (`addBox`, `addConsole`, `addDisplayBox`, `addHuman`, `addStandingTV`, `addGlassCase`, `addCutoutFigure`, `addPointLight`, …) builds a `THREE.Group` (or `Mesh`), registers its `{ id, w, d, h, draggable }` in `userData`, applies any saved position/rotation from `savedLayout`, and pushes the root object into the module-level `furniture[]` array. Everything downstream (picking, dragging, persistence, bounds-clamping) is driven by iteration over `furniture[]` + `userData` flags — **add new items via this pattern, not ad-hoc**.
+### Project JSON (`projects/<id>.json`)
+`meta` (title, subtitle, storageKey) · `room` (w, d, h, wallT, bounds, lightY) · `scene` (background, fog,
+hemi, sun) · `floor` (carpet style `mid-grey` | `charcoal`, tint, bump) · `walls[]` (size, position, color,
+`faces` → backdrop image per face `+x/-x/+y/-y/+z/-z`) · `fascias[]` (`logo-box` | `navy-plane`) · `poles[]` ·
+`reflections` (CubeCamera for `envmap` items) · `boothInfo` (Properties rows for the booth) · `guides` ·
+`views` (default, center, iso, persp/top/front positions, visitor item) · `screenSources` ·
+`graphicSources` (named sets; `{ image }` or `{ canvas }`) · `queues` (pole id chains, `closed`) ·
+`groups` (Items pane sections; may include "booth" to share the booth shell section) · `items[]` · `defaultLayout` (used when localStorage is empty / after Reset).
 
-3. **Interaction + persistence** — one unified mouse-drag state machine (`drag` object + `onMouseDown` / `onMouseMove` / `onMouseUp`) with three modes:
-   - `move` — raycast against `dragPlane` (XZ, y=0), snap to `SNAP` (0.1 m), clamp to `[BOUND_MIN, BOUND_MAX]` minus the object's half-extent.
-   - `rotate` — triggered by **Shift + drag**; rotates around Y, snapped to `ROT_SNAP` (15°).
-   - `light` — triggered automatically when the picked object has `userData.isLight`; uses a vertical XY plane so bulbs move in X and Y (Z is pinned to the initial value). The `PointLight` is parented to the bulb so it follows.
+Item fields: `id`, `name`, `icon` (key in `ICONS`, ui.js), `model`, `at {x,z,ry}`, `parent`, `light`, `wall`,
+`graphic`, `screen` / `screens[]`, `arm`, `hologram`, `spin`, `spotlight`, `envmap` (see items.js header).
+Saved layout per item: `{ x, y, z, ry }` + `screen` / `screens`, `local`, `arm`, `locked`, `hidden`, `graphic`.
 
-   Positions persist to `localStorage` under `STORAGE_KEY` on every drag-end via `saveLayout()`. `loadLayout()` falls back to the baked-in `DEFAULT_LAYOUT` constant when storage is empty — this is the mechanism behind the **Reset** button.
+### Models (`assets/models/`)
+Furniture geometry lives only in `tools/models/factories.js` (pure builders → `VARIANTS`). Parts the page
+drives at runtime are tagged in `userData` (exported as glTF extras): `role` = `screen` / `screen0..n` /
+`print` / `holo` / `spin` / `envmap`, plus `noPick`, `noShadow`; monitor-arm joints are named
+`arm_swivel / arm_seg1 / arm_seg2 / arm_head`. `python3 tools/models/build.py` (Playwright + Chrome, via
+`save_server.py` PUT endpoint) writes `<name>.glb` and `manifest.json` (`{ w, d, h, … }` footprint per
+model; entries not in `VARIANTS`, e.g. `unysis9r` from CAD, are kept). Model origin: floor level, centred,
+front = +Z (wall poster: centred on its mid-height).
 
-### Picking a grouped object
-
-`pickFurniture()` calls `raycaster.intersectObjects(furniture, true)` (recursive) then walks up the parent chain until it hits something in the `furniture` set. This is why child meshes inside a `Group` (e.g. all the monitors of `console-1`) behave as one draggable unit. Any new factory that builds a composite object **must** push only the root group into `furniture[]`.
-
-### Saved layout format
-
-Per-item keys store `{ x, y, z, ry }` (center position + Y rotation). Non-light factories ignore `saved.y` (their Y is derived from geometry — e.g. `h/2` for boxes). Lights force `saved.z = initial z`. The on-load clamp loop at the bottom of the furniture section re-runs bounds-clamping in case a previously-saved item was dragged out before clamping was introduced.
-
-### Animation
-
-Per-frame rotation is opt-in: factories push the target mesh into `animatedItems[]`. The render loop (`tick`) rotates each at `ROT_PER_SEC` (1°/s) using a `THREE.Clock` delta.
-
-## Adding a new furniture type
-
-1. Write a factory function taking at minimum `{ id, x, z }`.
-2. Build a `Group` (or single `Mesh`), set `userData = { id, w, d, h, draggable: true }`.
-3. Restore from `savedLayout[id]` if present, otherwise position with the passed defaults.
-4. `scene.add(group); furniture.push(group);`
-5. Call the factory *after* `savedLayout` is declared (light factories are called late for this reason — don't move them back up).
-
-## HUD
-
-Buttons top-right (Perspective / Top / Front / Grid / Y grid / Reset) are wired in the final script block. The **Reset** button clears `STORAGE_KEY` from localStorage and `location.reload()`s — which then reads `DEFAULT_LAYOUT`.
+## Adding things
+- **New project:** add `projects/<id>.json` (copy one) + an entry in `projects/index.json` (+ thumbnail in
+  `assets/thumbs/`). Use a new `meta.storageKey`.
+- **New furniture model:** builder + `VARIANTS` entry in `tools/models/factories.js` → full
+  `python3 tools/models/build.py` (writes the GLB and its `{ w, d, h }` manifest entry; a partial build
+  `build.py <name>` leaves the manifest unchanged) → reference with `"model": "<name>"` in an item.
+  External GLBs (CAD): copy to `assets/models/` and add the manifest entry by hand.
+- **New item behaviour:** tag the part in the builder (`userData.role`), handle it in `items.js`
+  `buildModelItem` (`addModel` onReady) and, if it is saved, in `layout.js` save / apply.

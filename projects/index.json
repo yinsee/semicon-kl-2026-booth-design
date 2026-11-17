@@ -1,0 +1,18 @@
+{
+  "projects": [
+    {
+      "id": "japan2026",
+      "file": "projects/japan2026.json",
+      "title": "Japan 2026",
+      "subtitle": "SEMICON Japan 2026 · 3 × 3 m booth",
+      "thumb": "assets/thumbs/japan2026.jpg"
+    },
+    {
+      "id": "booth-6x3",
+      "file": "projects/booth-6x3.json",
+      "title": "Semicon KL 2026",
+      "subtitle": "SEMICON Southeast Asia KL 2026 · 6 × 3 m booth",
+      "thumb": "assets/thumbs/booth-6x3.jpg"
+    }
+  ]
+}

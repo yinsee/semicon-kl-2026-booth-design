@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Model export</title>
+<style>body { font: 13px/1.5 ui-monospace, Menlo, monospace; background: #111; color: #ddd; padding: 16px; }</style>
+</head>
+<body>
+<p>Exports every variant in tools/models/factories.js to assets/models/&lt;name&gt;.glb + manifest.json.
+Run through <code>python3 tools/models/build.py</code> (needs the PUT endpoint of save_server.py).</p>
+<pre id="log"></pre>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { VARIANTS } from './factories.js';
+
+const logEl = document.getElementById('log');
+const log = (s) => { logEl.textContent += s + '\n'; console.log(s); };
+async function put(path, body, type) {
+  const res = await fetch(`/${path}`, { method: 'PUT', headers: { 'Content-Type': type }, body });
+  if (!res.ok) throw new Error(`PUT ${path} → ${res.status}`);
+}
+
+try {
+  const exporter = new GLTFExporter();
+  const only = new URLSearchParams(location.search).get('only');   // ?only=tv-42,counter
+  const names = Object.keys(VARIANTS).filter(n => !only || only.split(',').includes(n));
+  // Keep manifest entries for models that are not generated here (e.g. unysis9r.glb from CAD)
+  const old = await fetch('/assets/models/manifest.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+  const manifest = Object.fromEntries(Object.entries(old).filter(([k]) => !(k in VARIANTS)));
+  for (const name of names) {
+    const { object, meta } = VARIANTS[name]();
+    object.name = name;
+    const glb = await exporter.parseAsync(object, { binary: true, onlyVisible: false });
+    await put(`assets/models/${name}.glb`, glb, 'model/gltf-binary');
+    manifest[name] = meta;
+    log(`${name.padEnd(22)} ${(glb.byteLength / 1024).toFixed(0).padStart(6)} KB  ${JSON.stringify(meta)}`);
+  }
+  if (!only) await put('assets/models/manifest.json', JSON.stringify(manifest, null, 2) + '\n', 'application/json');
+  log('done');
+  window.__exportResult = { ok: true, count: names.length };
+} catch (err) {
+  log('ERROR ' + (err.stack || err));
+  window.__exportResult = { ok: false, error: String(err) };
+}
+</script>
+</body>
+</html>

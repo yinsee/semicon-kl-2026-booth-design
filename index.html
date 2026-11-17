@@ -2,46 +2,211 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Exhibition Booth — Floor Plan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Booth projects</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #1a1a1a; color: #eee; font-family: system-ui, sans-serif; overflow: hidden; }
-  #app { position: fixed; inset: 0; }
-  #hud {
-    position: fixed; top: 12px; left: 12px; z-index: 10;
-    background: rgba(0,0,0,0.55); padding: 10px 14px; border-radius: 8px;
-    font-size: 13px; line-height: 1.5; pointer-events: none;
-    backdrop-filter: blur(6px);
+  :root {
+    --bg: #15171a; --glass: rgba(18, 20, 24, 0.82); --line: rgba(255,255,255,0.09);
+    --text: #e8eaed; --muted: #9aa0a6; --accent: #ffd166; --lock: #ff8a65;
+    --nav-h: 48px; --status-h: 28px; --pane-bg: #1b1e22;
+    --left-w: 240px; --right-w: 300px;   /* --left-w is set by JS (expanded / minimized) */
   }
-  #hud b { color: #ffd166; }
-  #controls {
-    position: fixed; top: 12px; right: 12px; z-index: 10;
-    background: rgba(0,0,0,0.55); padding: 10px 14px; border-radius: 8px;
-    font-size: 13px; backdrop-filter: blur(6px); display: flex; gap: 8px;
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
+  /* 3D viewport: between the top bar, status bar and the docked Items pane. The Properties pane
+     overlays the right edge, so opening / closing it does not move the 3D view. */
+  #app { position: fixed; top: var(--nav-h); bottom: var(--status-h); left: var(--left-w); right: 0; }
+
+  /* ---- Top navigation ---- */
+  #topnav {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 20;
+    display: flex; align-items: center; gap: 16px; padding: 0 12px;
+    background: var(--glass); border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
   }
+  #topnav .brand { display: flex; align-items: baseline; gap: 8px; margin-right: auto; white-space: nowrap; }
+  #topnav .brand b { color: var(--accent); font-size: 15px; letter-spacing: .3px; }
+  #topnav .brand span { color: var(--muted); font-size: 12px; }
+  #topnav .group { display: flex; align-items: center; gap: 4px; padding-left: 12px; border-left: 1px solid var(--line); }
   button {
-    background: #2a2a2a; color: #eee; border: 1px solid #444;
-    padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;
+    background: #24272c; color: var(--text); border: 1px solid #3a3e45;
+    padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit;
   }
-  button:hover { background: #3a3a3a; }
-  button.active { background: #ffd166; color: #111; border-color: #ffd166; }
+  button:hover:not(:disabled) { background: #30343a; }
+  button.active { background: var(--accent); color: #111; border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+
+  /* ---- Bottom status bar ---- */
+  #statusbar {
+    position: fixed; bottom: 0; left: 0; right: 0; height: var(--status-h); z-index: 20;
+    display: flex; align-items: center; gap: 18px; padding: 0 12px;
+    background: var(--glass); border-top: 1px solid var(--line); backdrop-filter: blur(8px);
+    font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden;
+  }
+  #statusbar b { color: var(--text); font-weight: 600; }
+  #statusbar .sel { color: var(--accent); }
+  #statusbar .spacer { margin-left: auto; }
+
+  /* ---- Docked side panes: Items (left), Properties (right) ---- */
+  .pane {
+    position: fixed; top: var(--nav-h); bottom: var(--status-h); z-index: 15;
+    display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
+    background: var(--pane-bg);
+  }
+  #pane-left  { left: 0;  width: var(--left-w);  border-right: 1px solid var(--line); }
+  #pane-right { right: 0; width: var(--right-w); border-left: 1px solid var(--line); }
+  .pane.off { display: none; }
+  .pane > header {
+    flex: none; height: 34px; display: flex; align-items: center; padding: 0 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted);
+  }
+  .pane > .body { flex: 1; overflow-y: auto; padding: 10px 12px; font-size: 13px; line-height: 1.6; }
+
+  /* Icon buttons in the top bar */
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; padding: 0; }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .icon-btn.active { background: #24272c; color: var(--accent); border-color: var(--accent); }
+  #topnav .group .icon-btn.active { background: var(--accent); color: #111; border-color: var(--accent); }
+
+  /* Properties panel content */
+  #info .empty { color: var(--muted); font-size: 12px; }
+  #info .name { color: var(--accent); font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  #info .row { display: flex; justify-content: space-between; gap: 16px; }
+  #info .row span:first-child { color: var(--muted); }
+  #info .row.arm { align-items: center; }
+  #info .row.arm span:first-child { white-space: nowrap; }
+  #info .row.arm input { flex: 1; min-width: 90px; }
+  #info .row.arm .val { width: 34px; text-align: right; color: var(--text); }
+  #info select {
+    margin-top: 6px; width: 100%; background: #24272c; color: var(--text);
+    border: 1px solid #3a3e45; border-radius: 6px; padding: 4px 6px; font-size: 12px;
+  }
+  #info .lock-row { align-items: center; margin: 4px 0; cursor: pointer; }
+  .switch { position: relative; width: 36px; height: 20px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .switch .slider { position: absolute; inset: 0; background: #555; border-radius: 10px; transition: background .15s; }
+  .switch .slider::before { content: ''; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px;
+    background: #eee; border-radius: 50%; transition: transform .15s; }
+  .switch input:checked + .slider { background: var(--lock); }
+  .switch input:checked + .slider::before { transform: translateX(16px); }
+
+  /* Items panel */
+  #item-list { list-style: none; margin: 0 -6px; padding: 0; }
+  #pane-left.mini > .body { padding: 8px 4px; }
+  #pane-left.mini #item-list { margin: 0; }
+  #pane-left.mini #item-list li { justify-content: center; padding: 6px 0; position: relative; }
+  #pane-left.mini #item-list li .nm, #pane-left.mini #item-list li:not(.locked) .lk { display: none; }
+  #pane-left.mini #item-list li.locked .lk { position: absolute; right: 6px; bottom: 2px; pointer-events: none; }
+  #pane-left.mini #item-list li.locked .lk svg { width: 10px; height: 10px; }
+  .pane > header { justify-content: space-between; }
+  .close-btn { background: none; border: none; color: var(--muted); font-size: 14px; padding: 2px 6px; }
+  .close-btn:hover:not(:disabled) { background: #30343a; color: var(--text); }
+  #item-list li .ic { display: inline-flex; flex: none; color: var(--muted); }
+  #item-list li.sep { height: 0; padding: 0; margin: 6px 6px; border-top: 1px solid var(--line); border-radius: 0; cursor: default; pointer-events: none; }
+  #item-list li.child { margin-left: 14px; padding-left: 10px; border-left: 1px solid var(--line); border-radius: 0 5px 5px 0; }
+  #pane-left.mini #item-list li.child { margin-left: 8px; padding-left: 0; }
+  #pane-left.mini #item-list li.child .ic svg { width: 13px; height: 13px; }
+  #item-list li .ic svg { width: 16px; height: 16px; }
+  #item-list li.selected .ic { color: var(--accent); }
+  #item-list li .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #item-list li {
+    display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 5px;
+    cursor: pointer; font-size: 12px;
+  }
+  #item-list li:hover { background: rgba(255,255,255,0.06); }
+  #item-list li.selected { background: rgba(255, 209, 102, 0.18); color: var(--accent); }
+  #item-list li .lk { display: inline-flex; flex: none; color: var(--lock); cursor: pointer; opacity: 0; }
+  #item-list li .lk svg { width: 14px; height: 14px; }
+  #item-list li.locked .lk { opacity: 1; }
+  #item-list li:not(.locked) .lk { color: var(--muted); }
+  #item-list li:hover .lk { opacity: 1; }
+  #item-list li .vis { display: inline-flex; flex: none; color: var(--muted); cursor: pointer; opacity: 0; }
+  #item-list li .vis svg { width: 14px; height: 14px; }
+  #item-list li:hover .vis, #item-list li.hidden-item .vis { opacity: 1; }
+  #item-list li.hidden-item .nm, #item-list li.hidden-item .ic,
+  #item-list li.parent-hidden .nm, #item-list li.parent-hidden .ic { opacity: .4; }
+  #item-list li.parent-hidden .vis { opacity: .4; pointer-events: none; }
+  #pane-left.mini #item-list li .vis { display: none; }
+  #item-list li[data-id="booth"] .vis { visibility: hidden; }
+  #item-list li[data-id="booth"] .lk { cursor: default; }
+  #statusbar .lock-tag { display: inline-flex; align-items: center; gap: 3px; color: var(--lock); }
+  #statusbar .lock-tag svg { width: 12px; height: 12px; }
+  #statusbar kbd { background: #2a2d33; border: 1px solid #3a3e45; border-radius: 4px; padding: 0 4px;
+    font-size: 11px; color: var(--text); font-family: inherit; }
+  #statusbar .hints { overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---- Project menu (start screen) ---- */
+  #menu { position: fixed; inset: 0; z-index: 40; display: none; overflow-y: auto; background: var(--bg); }
+  body.menu-open #menu { display: block; }
+  #menu .wrap { max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+  #menu h1 { margin: 0 0 4px; font-size: 22px; color: var(--accent); letter-spacing: .3px; }
+  #menu p.lead { margin: 0 0 28px; color: var(--muted); font-size: 13px; }
+  #menu-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  #menu .card { display: block; text-decoration: none; color: var(--text); background: var(--pane-bg);
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden; transition: border-color .15s, transform .15s; }
+  #menu .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  #menu .card .thumb { aspect-ratio: 16 / 9; background: #23262b; }
+  #menu .card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #menu .card .meta { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 2px; }
+  #menu .card .meta b { font-size: 15px; }
+  #menu .card .meta span { font-size: 12px; color: var(--muted); }
+
+  @media (max-width: 760px) {
+    #topnav .brand span { display: none; }
+    #topnav { gap: 8px; overflow-x: auto; }
+    #menu .wrap { padding: 28px 16px; }
+    #menu-cards { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
-<body>
+<body class="menu-open">
 <div id="app"></div>
-<div id="hud">
-  <b>Exhibition Booth</b> — 6 m × 3 m<br/>
-  Left wall: 3 m · Top-left wall: 3 m<br/>
-  <span style="opacity:.7">Drag = orbit · Scroll = zoom · Right-drag = pan</span>
-</div>
-<div id="controls">
-  <button id="view-persp" class="active">Perspective</button>
-  <button id="view-top">Top</button>
-  <button id="view-front">Front</button>
-  <button id="toggle-grid" class="active">Grid</button>
-  <button id="toggle-ygrid">Y grid</button>
-  <button id="toggle-iso">Iso</button>
-  <button id="reset-layout" title="Clear saved layout and reload with defaults">Reset</button>
-</div>
+
+<header id="topnav">
+  <button id="go-projects" class="icon-btn" title="All projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+  <button id="toggle-left" class="icon-btn active" title="Expand / minimize Items pane"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/></svg></button>
+  <div class="brand"><b></b><span>Booth design</span></div>
+  <div class="group" title="Camera view">
+    <button id="view-persp" class="icon-btn active" title="Perspective view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8l6-4h10v12l-6 4H4z"/><path d="M4 8h10v12M14 8l6-4"/></svg></button>
+    <button id="view-top" class="icon-btn" title="Top view (plan)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 8v8M8 12h8"/></svg></button>
+    <button id="view-front" class="icon-btn" title="Front view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="14" rx="1"/><path d="M4 10h16M9 20v-6h6v6"/></svg></button>
+    <button id="view-visitor" class="icon-btn" title="Visitor view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.2"/><path d="M12 8v7M8 11l4-2 4 2M10 21l2-6 2 6"/></svg></button>
+    <button id="toggle-iso" class="icon-btn" title="Isometric (orthographic) camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button>
+  </div>
+  <div class="group" title="Guides">
+    <button id="toggle-grid" class="icon-btn active" title="Floor grid + light bulbs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-5 9 5-9 5z"/><path d="M7.5 6.5l9 5M16.5 6.5l-9 5"/><path d="M3 15l9 5 9-5" opacity=".5"/></svg></button>
+    <button id="toggle-ygrid" class="icon-btn" title="Height (Y) grid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V3M5 7h4M5 11h6M5 15h4M5 19h6"/><path d="M14 21V9l6-4v12z"/></svg></button>
+  </div>
+  <div class="group" title="Edit">
+    <button id="undo" class="icon-btn" title="Undo last change (Ctrl/⌘ + Z)" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+    <button id="reset-layout" class="icon-btn" title="Reset: clear saved layout and reload with defaults"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+  </div>
+</header>
+
+<aside class="pane" id="pane-left">
+  <div class="body"><ul id="item-list"></ul></div>
+</aside>
+
+<aside class="pane" id="pane-right">
+  <header><span class="title">Properties</span><button id="close-props" class="close-btn" title="Close (deselect)">✕</button></header>
+  <div class="body" id="info"></div>
+</aside>
+
+<footer id="statusbar">
+  <span id="status-sel">No item selected</span>
+  <span class="spacer"></span>
+  <span class="hints"><kbd>Click</kbd> select · <kbd>Drag</kbd> orbit / move selected · <kbd>Shift</kbd>+drag rotate selected / pan · <kbd>Scroll</kbd> zoom · <kbd>Double-click</kbd> lock / unlock (booth or list) · <kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> undo</span>
+  <span id="status-items"></span>
+  <span id="status-undo">Undo: 0</span>
+</footer>
+
+<section id="menu">
+  <div class="wrap">
+    <h1>Booth projects</h1>
+    <p class="lead">Choose a booth to open it in the 3D editor. Changes are saved in this browser.</p>
+    <div id="menu-cards"></div>
+  </div>
+</section>
 
 <script type="importmap">
 {
@@ -51,1877 +216,6 @@
   }
 }
 </script>
-
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-
-// --- Dimensions (meters) ---
-const ROOM_W = 6;      // X: width
-const ROOM_D = 3;      // Z: depth
-const WALL_H = 2.47;   // Y: wall height (247 cm)
-const WALL_T = 0.08;   // wall thickness
-const LEFT_WALL_LEN = 3;    // left wall along Z
-const TOP_WALL_LEN  = 3;    // top-left wall along X
-
-// --- Renderer ---
-const app = document.getElementById('app');
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
-app.appendChild(renderer.domElement);
-
-// Environment for reflective materials
-const pmrem = new THREE.PMREMGenerator(renderer);
-
-// --- Scene ---
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x202428);
-scene.fog = new THREE.Fog(0x202428, 20, 60);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-
-// Real-time scene reflection for polished metal (shared CubeCamera at booth centre).
-// The stainless ovens pick this up as their envMap so they mirror the surrounding props.
-const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
-cubeRT.texture.mapping = THREE.CubeReflectionMapping;
-const cubeCam = new THREE.CubeCamera(0.1, 40, cubeRT);
-cubeCam.position.set(3, 1.2, 1.5); // booth centre, roughly eye height
-scene.add(cubeCam);
-
-// Shared screen videos. Each <video> element decodes once; consumers create
-// their own VideoTexture so UV can be mirrored per-material (needed when a
-// monitor is rotated 180° to face the operator).
-function makeVideoElement(src) {
-  const el = document.createElement('video');
-  el.src = src;
-  el.loop = true;
-  el.muted = true;
-  el.playsInline = true;
-  el.autoplay = true;
-  el.preload = 'auto';
-  el.crossOrigin = 'anonymous';
-  el.style.display = 'none';
-  document.body.appendChild(el);
-  el.addEventListener('error', () => console.warn(`[video] load failed: ${src}`, el.error));
-  el.play().catch(() => {
-    const resume = () => { el.play().catch(() => {}); window.removeEventListener('pointerdown', resume); };
-    window.addEventListener('pointerdown', resume, { once: true });
-  });
-  return el;
-}
-const screenVideoEl  = makeVideoElement('assets/saw.mp4');      // console wall + desk monitors
-const displayVideoEl = makeVideoElement('assets/display.mp4');   // 70" standing TV
-
-// Mark a mesh as non-pickable so raycasts pass through it (used for glass /
-// overlay planes so they don't inflate the draggable hit area).
-function nonPickable(obj) { obj.raycast = () => {}; return obj; }
-
-function makeScreenVideoTexture({ videoEl = screenVideoEl, mirror = false } = {}) {
-  const vt = new THREE.VideoTexture(videoEl);
-  vt.colorSpace = THREE.SRGBColorSpace;
-  vt.minFilter = THREE.LinearFilter;
-  vt.magFilter = THREE.LinearFilter;
-  vt.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  if (mirror) {
-    vt.wrapS = THREE.RepeatWrapping;
-    vt.repeat.x = -1;
-    vt.offset.x = 1;
-  }
-  return vt;
-}
-
-// Shared MeshStandardMaterial builder for any TV/screen surface (image or video,
-// optionally U-mirrored for monitors rotated 180° toward the operator).
-THREE.Cache.enabled = true;
-// Memoise by path so the same JPEG is only decoded + uploaded to the GPU once,
-// even when it appears on multiple screens (cache returns a clone with its own
-// wrap/repeat settings but sharing the underlying .image/.source).
-const _sharedTexCache = new Map();
-const _texLoader = new THREE.TextureLoader();
-function loadSharedTexture(path) {
-  let base = _sharedTexCache.get(path);
-  if (!base) {
-    base = _texLoader.load(path);
-    base.colorSpace = THREE.SRGBColorSpace;
-    base.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    _sharedTexCache.set(path, base);
-  }
-  return base;
-}
-function makeScreenMaterial({ path = null, videoEl = null, mirror = false, intensity = 0.45, roughness = 0.25 } = {}) {
-  let tex;
-  if (videoEl) {
-    tex = makeScreenVideoTexture({ videoEl, mirror });
-  } else {
-    const base = loadSharedTexture(path);
-    tex = mirror ? base.clone() : base;
-    if (mirror) { tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 1; tex.needsUpdate = true; }
-  }
-  return new THREE.MeshStandardMaterial({
-    map: tex, roughness, metalness: 0.1,
-    emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: intensity,
-  });
-}
-
-// --- Cameras ---
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(7, 6, 7);
-
-// Origin is the booth's top-left corner (plan view).
-// Floor spans X: 0..6, Z: 0..3. Center for orbit target:
-const center = new THREE.Vector3(ROOM_W / 2, 0, ROOM_D / 2);
-
-// Orthographic camera for the iso/non-perspective mode.
-// Standard isometric: ~35.26° elevation, 45° azimuth.
-const isoCamera = new THREE.OrthographicCamera();
-isoCamera.near = -50; isoCamera.far = 100;
-function fitIsoFrustum() {
-  const halfH = 4; // controls how much of the scene is visible vertically
-  const halfW = halfH * window.innerWidth / window.innerHeight;
-  isoCamera.left = -halfW; isoCamera.right = halfW;
-  isoCamera.top  =  halfH; isoCamera.bottom = -halfH;
-  isoCamera.updateProjectionMatrix();
-}
-fitIsoFrustum();
-{
-  const dist = 15;
-  const elev = Math.atan(1 / Math.SQRT2); // ≈ 35.26° for true isometric
-  const azim = Math.PI / 4;               // 45°
-  isoCamera.position.set(
-    center.x + dist * Math.cos(elev) * Math.sin(azim),
-              dist * Math.sin(elev),
-    center.z + dist * Math.cos(elev) * Math.cos(azim),
-  );
-  isoCamera.lookAt(center);
-}
-
-let activeCamera = camera;
-let controls;
-function bindControls(cam) {
-  if (controls) controls.dispose();
-  controls = new OrbitControls(cam, renderer.domElement);
-  controls.target.copy(center);
-  controls.enableDamping = true;
-  controls.maxPolarAngle = Math.PI / 2 - 0.01;
-  controls.minDistance = 2;
-  controls.maxDistance = 40;
-}
-bindControls(camera);
-
-// --- Lighting ---
-const hemi = new THREE.HemisphereLight(0xffffff, 0x404050, 0.55);
-scene.add(hemi);
-
-const sun = new THREE.DirectionalLight(0xffffff, 1.1);
-sun.position.set(6, 10, 4);
-sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
-sun.shadow.camera.left = -10;
-sun.shadow.camera.right = 10;
-sun.shadow.camera.top = 10;
-sun.shadow.camera.bottom = -10;
-sun.shadow.camera.near = 0.5;
-sun.shadow.camera.far = 30;
-sun.shadow.bias = -0.0005;
-scene.add(sun);
-
-// Booth point lights — draggable (X, Y) via the visible bulb
-function addPointLight(x, y, z, { id, intensity = 14 } = {}) {
-  const light = new THREE.PointLight(0xffffff, intensity, 10, 1.6);
-  light.castShadow = true;
-  light.shadow.mapSize.set(512, 512); // point lights render 6 cube faces per frame — keep cheap
-  light.shadow.bias = -0.0005;
-
-  const bulb = new THREE.Mesh(
-    new THREE.SphereGeometry(0.09, 20, 14),
-    new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0xffe6a8, emissiveIntensity: 1.1, roughness: 0.5 }),
-  );
-  // Light follows the bulb
-  bulb.add(light);
-  light.position.set(0, 0, 0);
-
-  bulb.userData = { id, isLight: true, draggable: true, w: 0.18, d: 0.18, h: 0.18 };
-
-  const saved = savedLayout[id];
-  // Lights drag only in X and Y; Z is always the initial value (stays out of the way).
-  if (saved) {
-    bulb.position.set(saved.x, saved.y ?? y, z);
-  } else {
-    bulb.position.set(x, y, z);
-  }
-  scene.add(bulb);
-  furniture.push(bulb);
-  return bulb;
-}
-
-// --- Ground (outside the booth) ---
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(60, 60),
-  new THREE.MeshStandardMaterial({ color: 0x2a2f33, roughness: 1 })
-);
-ground.rotation.x = -Math.PI / 2;
-ground.position.set(ROOM_W / 2, -0.001, ROOM_D / 2);
-ground.receiveShadow = true;
-scene.add(ground);
-
-// --- Procedural carpet texture ---
-function makeCarpetTexture() {
-  const size = 512;
-  const canvas = document.createElement('canvas');
-  canvas.width = size; canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  // base dark grey
-  ctx.fillStyle = '#3a3a3c';
-  ctx.fillRect(0, 0, size, size);
-  // speckle fibers
-  const img = ctx.getImageData(0, 0, size, size);
-  const d = img.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const n = (Math.random() - 0.5) * 36;
-    d[i]   = Math.max(0, Math.min(255, d[i]   + n));
-    d[i+1] = Math.max(0, Math.min(255, d[i+1] + n));
-    d[i+2] = Math.max(0, Math.min(255, d[i+2] + n));
-  }
-  ctx.putImageData(img, 0, 0);
-  // short directional fibers for carpet pile
-  for (let i = 0; i < 9000; i++) {
-    const x = Math.random() * size;
-    const y = Math.random() * size;
-    const len = 1 + Math.random() * 3;
-    const shade = 40 + Math.floor(Math.random() * 30);
-    ctx.strokeStyle = `rgba(${shade},${shade},${shade+2},0.5)`;
-    ctx.lineWidth = 0.6;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + (Math.random() - 0.5) * len, y + len);
-    ctx.stroke();
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
-const carpetMap = makeCarpetTexture();
-// ~1 tile per 0.5m: repeat 12 x 6 across a 6x3m floor
-carpetMap.repeat.set(12, 6);
-
-// --- Booth floor ---
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(ROOM_W, ROOM_D),
-  new THREE.MeshStandardMaterial({ map: carpetMap, color: 0xffffff, roughness: 0.98, metalness: 0 })
-);
-floor.rotation.x = -Math.PI / 2;
-floor.position.set(ROOM_W / 2, 0, ROOM_D / 2);
-floor.receiveShadow = true;
-scene.add(floor);
-
-// Booth edge outline (to make the footprint clearly visible)
-const edges = new THREE.LineSegments(
-  new THREE.EdgesGeometry(new THREE.PlaneGeometry(ROOM_W, ROOM_D)),
-  new THREE.LineBasicMaterial({ color: 0xffd166 })
-);
-edges.rotation.x = -Math.PI / 2;
-edges.position.set(ROOM_W / 2, 0.005, ROOM_D / 2);
-scene.add(edges);
-
-// --- Walls ---
-// Plain material for non-inner wall faces
-const wallMat = new THREE.MeshStandardMaterial({ color: 0x2f5fa8, roughness: 0.9 });
-// Each inner wall face gets its own backdrop image, stretched to fill the wall.
-function loadWallTex(path) {
-  const t = new THREE.TextureLoader().load(path);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
-  return t;
-}
-const wallMatLeftInner    = new THREE.MeshStandardMaterial({ map: loadWallTex('assets/backdrop1.jpg'), roughness: 0.9 });
-const wallMatTopLeftInner = new THREE.MeshStandardMaterial({ map: loadWallTex('assets/backdrop2.jpg'), roughness: 0.9 });
-
-function addWall(w, h, d, x, y, z) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
-  m.position.set(x, y, z);
-  m.castShadow = true;
-  m.receiveShadow = true;
-  scene.add(m);
-  return m;
-}
-
-// Corner pole at (3, 3) with 2 fascia signs (front + right) at the top
-{
-  const poleH = 2.5;
-  const poleX = 3.0, poleZ = 3.0;
-  const fasciaH = 0.3;
-  const fasciaLen = 3.0;
-  // Fascia's top edge sits at the pole/wall top (y = 2.5)
-  const yFasciaCenter = poleH - fasciaH / 2;
-
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0xd9dde1, roughness: 0.5, metalness: 0.35 });
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, poleH, 16), poleMat);
-  pole.position.set(poleX, poleH / 2, poleZ);
-  pole.castShadow = true;
-  scene.add(pole);
-
-  function makeFasciaCanvas(mirrored) {
-    const c = document.createElement('canvas');
-    c.width = 1536; c.height = 192;
-    const g = c.getContext('2d');
-    g.fillStyle = '#0a1a3a';
-    g.fillRect(0, 0, c.width, c.height);
-    g.strokeStyle = '#ffffff';
-    g.lineWidth = 3;
-    g.strokeRect(4, 4, c.width - 8, c.height - 8);
-    if (mirrored) { g.translate(c.width, 0); g.scale(-1, 1); }
-    g.fillStyle = '#ffffff';
-    g.font = 'bold 110px system-ui, sans-serif';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.fillText('BIOENERGY PROJECTS', c.width / 2, c.height / 2);
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    return t;
-  }
-
-  function addFascia(position, rotationY) {
-    const texF = makeFasciaCanvas(false);
-    const texB = makeFasciaCanvas(true);
-    const geom = new THREE.PlaneGeometry(fasciaLen, fasciaH);
-    const matF = new THREE.MeshStandardMaterial({
-      map: texF, side: THREE.FrontSide, roughness: 0.7,
-      emissive: 0xffffff, emissiveMap: texF, emissiveIntensity: 0.18,
-    });
-    const matB = new THREE.MeshStandardMaterial({
-      map: texB, side: THREE.BackSide, roughness: 0.7,
-      emissive: 0xffffff, emissiveMap: texB, emissiveIntensity: 0.18,
-    });
-    const f = new THREE.Mesh(geom, matF);
-    const b = new THREE.Mesh(geom, matB);
-    f.position.copy(position);
-    b.position.copy(position);
-    f.rotation.y = rotationY;
-    b.rotation.y = rotationY;
-    scene.add(f, b);
-  }
-
-  // Front fascia: faces +Z, extends from the pole toward −X
-  addFascia(new THREE.Vector3(poleX - fasciaLen / 2, yFasciaCenter, poleZ), 0);
-  // Right fascia: faces +X, extends from the pole toward −Z
-  addFascia(new THREE.Vector3(poleX, yFasciaCenter, poleZ - fasciaLen / 2), Math.PI / 2);
-}
-
-// Left wall (runs along Z at X=0). Inner face = +X side → material index 0.
-{
-  const mats = [wallMatLeftInner, wallMat, wallMat, wallMat, wallMat, wallMat];
-  const m = new THREE.Mesh(new THREE.BoxGeometry(WALL_T, WALL_H, LEFT_WALL_LEN), mats);
-  m.position.set(WALL_T / 2, WALL_H / 2, LEFT_WALL_LEN / 2);
-  m.castShadow = true; m.receiveShadow = true;
-  scene.add(m);
-}
-// Top-left wall (runs along X at Z=0). Inner face = +Z side → material index 4.
-{
-  const mats = [wallMat, wallMat, wallMat, wallMat, wallMatTopLeftInner, wallMat];
-  const m = new THREE.Mesh(new THREE.BoxGeometry(TOP_WALL_LEN, WALL_H, WALL_T), mats);
-  m.position.set(TOP_WALL_LEN / 2, WALL_H / 2, WALL_T / 2);
-  m.castShadow = true; m.receiveShadow = true;
-  scene.add(m);
-}
-
-// --- Furniture: draggable silver box ---
-const SNAP = 0.1; // 100 mm
-const BOUND_MIN = -5, BOUND_MAX = 10; // keep all objects inside this 15×15 m area
-const furniture = []; // draggable objects
-const animatedItems = []; // per-frame rotation animation (items tagged here)
-const animClock = new THREE.Clock();
-
-// --- Persistence ---
-const STORAGE_KEY = 'exhibition-booth-layout-v1';
-
-// Paste the JSON from the Export button here to bake in a new default layout.
-// Used when localStorage is empty (fresh browser / after clearing storage).
-const DEFAULT_LAYOUT = {
-  "light-1":   { "x":  5.2, "y": 2.8,   "z": 1.5, "ry":  0 },
-  "light-2":   { "x":  2.1, "y": 2.7,   "z": 1.5, "ry":  0 },
-  "box-1":     { "x":  0.9, "y": 0,     "z": 1.0, "ry": 12.5664 },
-  "box-2":     { "x":  2.2, "y": 0,     "z": 1.0, "ry":  6.2832 },
-  "box-3":     { "x":  4.1, "y": 0.307, "z": 0.5, "ry": -2.0944 },
-  "box-4":     { "x":  3.9, "y": 0.307, "z": 1.6, "ry": -1.5708 },
-  "console-1": { "x":  5.4, "y": 0,     "z": 1.5, "ry": -1.5708 },
-  "pc-1":      { "x":  5.5, "y": 0,     "z": 2.4, "ry":  2.3562 },
-  "pc-2":      { "x":  5.3, "y": 0,     "z": 0.4, "ry":  0.7854 },
-  "table-a":   { "x":  5.4, "y": 0.37,  "z": 2.5, "ry": -1.0472 },
-  "table-b":   { "x":  5.4, "y": 0.37,  "z": 0.5, "ry":  1.0472 },
-  "qp-1":      { "x":  4.6, "y": 0,     "z": 0.8, "ry":  0 },
-  "qp-2":      { "x":  5.2, "y": 0,     "z": 1.0, "ry":  0 },
-  "qp-3":      { "x":  5.2, "y": 0,     "z": 2.0, "ry":  0 },
-  "qp-4":      { "x":  4.6, "y": 0,     "z": 2.2, "ry":  0 },
-  "display-2": { "x":  5.8, "y": 0,     "z": 2.8, "ry": -2.618 },
-  "human-1":   { "x":  1.9, "y": 0,     "z": 2.7, "ry":  4.1888 },
-  "tv-1":      { "x":  4.0, "y": 0,     "z": 2.7, "ry":  5.236 },
-  "case-1":    { "x":  4.8, "y": 0,     "z": 1.5, "ry":  7.854 },
-};
-function loadLayout() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  // No saved layout → use the baked-in defaults from DEFAULT_LAYOUT
-  return { ...DEFAULT_LAYOUT };
-}
-function saveLayout() {
-  const data = {};
-  for (const m of furniture) {
-    data[m.userData.id] = {
-      x: +m.position.x.toFixed(3),
-      y: +m.position.y.toFixed(3),
-      z: +m.position.z.toFixed(3),
-      ry: +m.rotation.y.toFixed(4),
-    };
-  }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-const savedLayout = loadLayout();
-console.log('[layout] loaded saved settings:', savedLayout);
-
-addPointLight(6, 2.5, 1.5, { id: 'light-1', intensity: 14 });
-addPointLight(2, 1.5, 1.5, { id: 'light-2', intensity: 18 });
-
-function addBox({
-  id, w = 1, d = 1, h = 2.4, x = 0, z = 0, color = 0xdde2e6, metal = true,
-  facadeH = 0, facadeW = 0.7, facadeColor = 0x2f5fa8, facadeTexture = null,
-} = {}) {
-  const mat = metal
-    ? new THREE.MeshPhysicalMaterial({
-        color,
-        metalness: 1.0,
-        roughness: 0.18,
-        envMapIntensity: 1.5,
-        clearcoat: 0.4,
-        clearcoatRoughness: 0.15,
-      })
-    : new THREE.MeshStandardMaterial({
-        color,
-        metalness: 0,
-        roughness: 0.85,
-      });
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-
-  if (facadeH > 0) {
-    const facadeT = 0.03;
-    // Body of the facade (sides / back) stays the brand colour
-    const bodyFacadeMat = new THREE.MeshStandardMaterial({
-      color: facadeColor, roughness: 0.55, metalness: 0.1,
-      emissive: facadeColor, emissiveIntensity: 0.12,
-    });
-    // The front face: plain colour, or a texture if provided (acts as the "TV screen")
-    const screenMat = facadeTexture
-      ? makeScreenMaterial({ path: facadeTexture, intensity: 0.35, roughness: 0.45 })
-      : bodyFacadeMat;
-    // Per-face materials: [+X, -X, +Y, -Y, +Z, -Z]. The front of the facade
-    // is the +Z face (same as the main box-front direction before we shift it
-    // to the back of the box; the face-normal is still local +Z on the facade slab).
-    const facadeMats = [bodyFacadeMat, bodyFacadeMat, bodyFacadeMat, bodyFacadeMat, screenMat, bodyFacadeMat];
-    const facade = new THREE.Mesh(new THREE.BoxGeometry(facadeW, facadeH, facadeT), facadeMats);
-    facade.position.set(0, h / 2 + facadeH / 2, -d / 2 + facadeT / 2);
-    facade.castShadow = true;
-    facade.receiveShadow = true;
-    mesh.add(facade);
-  }
-  const saved = savedLayout[id];
-  if (saved) {
-    mesh.position.set(saved.x, h / 2, saved.z);
-    mesh.rotation.y = saved.ry ?? 0;
-  } else {
-    // initial placement: min-corner at (x, 0, z)
-    mesh.position.set(x + w / 2, h / 2, z + d / 2);
-  }
-  mesh.userData = { id, w, d, h, draggable: true };
-  scene.add(mesh);
-  furniture.push(mesh);
-  return mesh;
-}
-
-// --- SONIK-style industrial oven/machine (stainless with window, handles, logo) ---
-function addOven({ id, w = 1, d = 1, h = 2.4, x = 0, z = 0 } = {}) {
-  const group = new THREE.Group();
-  group.userData = { id, w, d, h, draggable: true };
-
-  const stainlessMat = new THREE.MeshPhysicalMaterial({
-    color: 0xdde2e6, metalness: 1.0, roughness: 0.22,
-    envMap: cubeRT.texture, envMapIntensity: 1.5,
-    clearcoat: 0.4, clearcoatRoughness: 0.15,
-  });
-  const darkMat  = new THREE.MeshStandardMaterial({ color: 0x17191b, roughness: 0.5, metalness: 0.55 });
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0x2a2e33, roughness: 0.45, metalness: 0.6 });
-
-  // Main body
-  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), stainlessMat);
-  body.position.y = h / 2;
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
-
-  // --- Logo textures (SONIK, blue) ---
-  function makeLogoTex(vertical) {
-    const c = document.createElement('canvas');
-    if (vertical) { c.width = 256; c.height = 1024; }
-    else          { c.width = 512; c.height = 160;  }
-    const g = c.getContext('2d');
-    g.clearRect(0, 0, c.width, c.height);
-    g.fillStyle = '#1e5cb2';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    if (vertical) {
-      g.save();
-      g.translate(c.width / 2, c.height / 2);
-      g.rotate(Math.PI / 2);
-      g.font = 'bold 130px system-ui, sans-serif';
-      g.fillText('SONIK', 0, 0);
-      g.restore();
-    } else {
-      g.font = 'bold 120px system-ui, sans-serif';
-      g.fillText('SONIK', c.width / 2, c.height / 2);
-    }
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    return t;
-  }
-
-  // Front SONIK logo near the top
-  const frontLogo = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.5, 0.14),
-    new THREE.MeshStandardMaterial({ map: makeLogoTex(false), transparent: true, alphaTest: 0.1 }),
-  );
-  frontLogo.position.set(-w / 4, h - 0.18, d / 2 + 0.002);
-  group.add(frontLogo);
-
-  // Vertical SONIK on the +X side face
-  const sideLogo = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.22, 0.9),
-    new THREE.MeshStandardMaterial({ map: makeLogoTex(true), transparent: true, alphaTest: 0.1 }),
-  );
-  sideLogo.position.set(w / 2 + 0.002, h * 0.6, 0);
-  sideLogo.rotation.y = Math.PI / 2;
-  group.add(sideLogo);
-
-  // --- Viewing window (frame + tinted glass + green readout) ---
-  const winW = 0.58, winH = 0.30;
-  const winY = h * 0.72;
-  const winFrame = new THREE.Mesh(new THREE.BoxGeometry(winW + 0.04, winH + 0.04, 0.025), frameMat);
-  winFrame.position.set(0, winY, d / 2 + 0.004);
-  winFrame.castShadow = true;
-  group.add(winFrame);
-  const glassMat = new THREE.MeshPhysicalMaterial({
-    color: 0x1b2a2f, metalness: 0.3, roughness: 0.1,
-    transmission: 0.25, transparent: true, ior: 1.5, thickness: 0.01,
-    clearcoat: 1.0, clearcoatRoughness: 0.05,
-  });
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.015), glassMat);
-  glass.position.set(0, winY, d / 2 + 0.022);
-  nonPickable(glass);
-  group.add(glass);
-  // Green digital readout on the glass
-  const readout = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.14, 0.06),
-    new THREE.MeshStandardMaterial({ color: 0x0e2416, emissive: 0x33ff88, emissiveIntensity: 0.9, roughness: 0.3 }),
-  );
-  readout.position.set(-0.16, winY, d / 2 + 0.031);
-  group.add(readout);
-
-  // --- Recessed (sink-in) door on the front ---
-  // Illusion built from: a raised rim around the opening + the door sitting inside the rim.
-  const doorW = w * 0.82, doorH = h * 0.45;
-  const doorY = h * 0.33;
-  const rimT  = 0.03;        // rim thickness (how far the rim sticks out from the body)
-  const rimW  = 0.035;       // rim width (material around the opening)
-  const bodyFront = d / 2;
-  // 4 raised rim bars around the door
-  const rimBars = [
-    { w: doorW + 2 * rimW, h: rimW, x: 0, y: doorY + doorH / 2 + rimW / 2 },
-    { w: doorW + 2 * rimW, h: rimW, x: 0, y: doorY - doorH / 2 - rimW / 2 },
-    { w: rimW, h: doorH,            x: -doorW / 2 - rimW / 2, y: doorY },
-    { w: rimW, h: doorH,            x:  doorW / 2 + rimW / 2, y: doorY },
-  ];
-  for (const b of rimBars) {
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, rimT), frameMat);
-    bar.position.set(b.x, b.y, bodyFront + rimT / 2);
-    bar.castShadow = true;
-    group.add(bar);
-  }
-  // Door surface, sitting inside the rim and set back from the rim's front face
-  // (matches the stainless body so the rim is what creates the recessed look)
-  const door = new THREE.Mesh(new THREE.BoxGeometry(doorW - 0.01, doorH - 0.01, 0.008), stainlessMat);
-  door.position.set(0, doorY, bodyFront + 0.004);
-  door.castShadow = true;
-  door.receiveShadow = true;
-  group.add(door);
-
-  // Bottom control panel
-  const panel = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, 0.14, 0.02), frameMat);
-  panel.position.set(0, 0.18, d / 2 + 0.012);
-  group.add(panel);
-
-  // Castors (4 small wheels under the unit)
-  const castorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.5, metalness: 0.3 });
-  for (const cx of [-w / 2 + 0.08, w / 2 - 0.08]) {
-    for (const cz of [-d / 2 + 0.08, d / 2 - 0.08]) {
-      const castor = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.05, 16), castorMat);
-      castor.rotation.z = Math.PI / 2;
-      castor.position.set(cx, 0.035, cz);
-      castor.castShadow = true;
-      group.add(castor);
-    }
-  }
-
-  // Saved position — always anchor at floor (ignore saved.y from the old Mesh era)
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + w / 2, 0, z + d / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-// Big oven at the booth corner (SONIK-style machine)
-addOven({ id: 'box-1', w: 0.9, d: 1.1, h: 2.5, x: 0, z: 0 });
-
-// --- Smaller chamber oven (oven2) — off-white body, traffic light, side port, door with handle ---
-function addOven2({ id, w = 1, d = 1, h = 1.2, x = 0, z = 0 } = {}) {
-  const group = new THREE.Group();
-  group.userData = { id, w, d, h, draggable: true };
-
-  const bodyMat   = new THREE.MeshStandardMaterial({ color: 0xd6d1c4, roughness: 0.55, metalness: 0.12 });
-  const accentMat = new THREE.MeshStandardMaterial({ color: 0xb3b0a7, roughness: 0.6,  metalness: 0.18 });
-  const frameMat  = new THREE.MeshStandardMaterial({ color: 0x2a2e33, roughness: 0.45, metalness: 0.6 });
-  const darkMat   = new THREE.MeshStandardMaterial({ color: 0x17191b, roughness: 0.5,  metalness: 0.55 });
-  const screenMat = new THREE.MeshStandardMaterial({ color: 0x0a0e18, emissive: 0x1f4f9e, emissiveIntensity: 0.45, roughness: 0.22 });
-
-  // Main body
-  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bodyMat);
-  body.position.y = h / 2;
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
-
-  // Thin accent strip on the +X side
-  const sidePanel = new THREE.Mesh(new THREE.BoxGeometry(0.008, h * 0.9, d * 0.9), accentMat);
-  sidePanel.position.set(w / 2 + 0.005, h * 0.5, 0);
-  group.add(sidePanel);
-
-  // --- Traffic-light stack tower ---
-  const towerX = -w * 0.28, towerZ = -d * 0.28;
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.05, 12), frameMat);
-  stem.position.set(towerX, h + 0.025, towerZ);
-  group.add(stem);
-  const lightColors = [0xff2e2e, 0xffd42a, 0x33cc55];
-  for (let i = 0; i < 3; i++) {
-    const lamp = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, 0.06, 20),
-      new THREE.MeshStandardMaterial({
-        color: lightColors[i], emissive: lightColors[i], emissiveIntensity: 0.6, roughness: 0.3,
-      }),
-    );
-    lamp.position.set(towerX, h + 0.08 + i * 0.065, towerZ);
-    group.add(lamp);
-  }
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.025, 20), frameMat);
-  cap.position.set(towerX, h + 0.08 + 3 * 0.065 + 0.01, towerZ);
-  group.add(cap);
-
-  // --- Control panel with screen, upper-front-left ---
-  const panelFrame = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.17, 0.022), frameMat);
-  panelFrame.position.set(-w * 0.25, h - 0.17, d / 2 + 0.013);
-  group.add(panelFrame);
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.09), screenMat);
-  screen.position.set(-w * 0.25, h - 0.15, d / 2 + 0.026);
-  group.add(screen);
-  // Indicator LEDs beside the screen
-  for (let i = 0; i < 3; i++) {
-    const led = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.008, 0.008, 0.006, 10),
-      new THREE.MeshStandardMaterial({ color: lightColors[i], emissive: lightColors[i], emissiveIntensity: 0.9, roughness: 0.3 }),
-    );
-    led.rotation.x = Math.PI / 2;
-    led.position.set(-w * 0.25 + 0.11, h - 0.12 - i * 0.03, d / 2 + 0.028);
-    group.add(led);
-  }
-
-  // --- Front door with vertical handle ---
-  const doorW = w * 0.72, doorH = h * 0.72;
-  const doorY = h * 0.42;
-  const doorOffsetX = w * 0.06;
-  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.03, doorH + 0.03, 0.02), frameMat);
-  doorFrame.position.set(doorOffsetX, doorY, d / 2 + 0.005);
-  group.add(doorFrame);
-  const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.015), bodyMat);
-  door.position.set(doorOffsetX, doorY, d / 2 + 0.014);
-  group.add(door);
-  // Small sticker / badge on the door
-  const sticker = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.09, 0.06),
-    new THREE.MeshStandardMaterial({ color: 0x1e5cb2, roughness: 0.4 }),
-  );
-  sticker.position.set(doorOffsetX, doorY + doorH * 0.3, d / 2 + 0.023);
-  group.add(sticker);
-  // Vertical handle on the left side of the door
-  const handleH = doorH * 0.85;
-  const handleX = doorOffsetX - doorW / 2 - 0.03;
-  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.035, handleH, 0.05), darkMat);
-  handle.position.set(handleX, doorY, d / 2 + 0.035);
-  handle.castShadow = true;
-  group.add(handle);
-  for (const hy of [handleH / 2 - 0.02, -handleH / 2 + 0.02]) {
-    const clip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.03), frameMat);
-    clip.position.set(handleX, doorY + hy, d / 2 + 0.02);
-    group.add(clip);
-  }
-
-  // --- Circular port / flange on the right side ---
-  const flangeOuter = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.095, 0.095, 0.02, 32),
-    frameMat,
-  );
-  flangeOuter.rotation.z = Math.PI / 2;
-  flangeOuter.position.set(w / 2 + 0.012, h * 0.45, 0);
-  group.add(flangeOuter);
-  const flangeInner = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.062, 0.062, 0.014, 32),
-    darkMat,
-  );
-  flangeInner.rotation.z = Math.PI / 2;
-  flangeInner.position.set(w / 2 + 0.02, h * 0.45, 0);
-  group.add(flangeInner);
-
-  // --- Adjustable leveling feet (4 small pads) ---
-  for (const cx of [-w / 2 + 0.09, w / 2 - 0.09]) {
-    for (const cz of [-d / 2 + 0.09, d / 2 - 0.09]) {
-      const legStem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.06, 12), frameMat);
-      legStem.position.set(cx, 0.03, cz);
-      group.add(legStem);
-      const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.015, 16), darkMat);
-      pad.position.set(cx, 0.008, cz);
-      group.add(pad);
-    }
-  }
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + w / 2, 0, z + d / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-// Second oven (chamber-style) next to the first
-addOven2({ id: 'box-2', w: 0.9, d: 1.1, h: 1.8, x: 1, z: 0 });
-// Third box: 91 × 61.5 cm, depth 1 ft (~0.305 m) with portrait display panel (4.jpeg)
-addBox({ id: 'box-3', w: 0.91, d: 0.3048, h: 0.615, x: 2.2, z: 2.0, color: 0xffffff, metal: false, facadeH: 1.2, facadeTexture: 'assets/4.jpeg' });
-// Fourth box: same size, placed behind box-3 (5.jpeg)
-addBox({ id: 'box-4', w: 0.91, d: 0.3048, h: 0.615, x: 2.2, z: 2.6, color: 0xffffff, metal: false, facadeH: 1.2, facadeTexture: 'assets/5.jpeg' });
-
-// --- Control console: curved desk + semi-circular video wall ---
-function addConsole({ id, x = 0, z = 0 } = {}) {
-  const W = 2.6, D = 2.4, H = 2.2; // rough bounding box
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: H, draggable: true };
-
-  const bodyMat   = new THREE.MeshStandardMaterial({ color: 0x2b2f34, roughness: 0.65, metalness: 0.25 });
-  const topMat    = new THREE.MeshStandardMaterial({ color: 0xe4e6e9, roughness: 0.45, metalness: 0.1 });
-  const frameMat  = new THREE.MeshStandardMaterial({ color: 0x1a1c1f, roughness: 0.4,  metalness: 0.7 });
-  const screenMat = new THREE.MeshStandardMaterial({
-    color: 0x0a1628, emissive: 0x1f6fb8, emissiveIntensity: 0.55, roughness: 0.25,
-  });
-
-  // Sub-frame whose origin = operator position; desk & wall curve around this.
-  const op = new THREE.Group();
-  op.position.set(0, 0, -D / 2 + 0.55);
-  group.add(op);
-
-  // --- Curved video wall: 3 × 43" portrait TVs on an arc around the operator ---
-  // 43" 16:9 → 0.9521 × 0.5355 m landscape → portrait swaps to 0.5355 × 0.9521
-  const R_wall = 1.55;
-  const wallAngles = [-Math.PI * 40 / 180, 0, Math.PI * 40 / 180]; // ±40°
-  const mW = 0.952, mH = 0.536; // landscape 43"
-  const tvCenterY = 1.54;       // screen top at 181 cm (1.81 - mH/2)
-  const R_post = R_wall;
-  const R_mon  = R_wall - 0.12; // TVs in front of the posts
-
-  const screenMats = [
-    makeScreenMaterial({ videoEl: screenVideoEl, mirror: true, intensity: 0.5, roughness: 0.22 }), // left TV (-40°)
-    makeScreenMaterial({ path: 'assets/6.jpeg',  mirror: true }),                                   // centre TV (0°)
-    makeScreenMaterial({ path: 'assets/3.jpg',   mirror: true }),                                   // right TV (+40°)
-  ];
-
-  for (let i = 0; i < wallAngles.length; i++) {
-    const θ = wallAngles[i];
-    const sinθ = Math.sin(θ), cosθ = Math.cos(θ);
-    const mx = R_mon * sinθ;
-    const mz = R_mon * cosθ;
-    const mon = new THREE.Group();
-    const screen = new THREE.Mesh(new THREE.BoxGeometry(mW, mH, 0.025), screenMats[i]);
-    const frame  = new THREE.Mesh(new THREE.BoxGeometry(mW + 0.04, mH + 0.04, 0.02), frameMat);
-    frame.position.z = -0.005;
-    mon.add(frame, screen);
-    mon.position.set(mx, tvCenterY, mz);
-    mon.rotation.y = θ + Math.PI; // face operator
-    mon.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-    op.add(mon);
-
-    // Support post behind each TV (no taller than the TV top)
-    const postH = tvCenterY + mH / 2;
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, postH, 0.08), frameMat);
-    post.position.set(R_post * sinθ, postH / 2, R_post * cosθ);
-    post.rotation.y = θ;
-    post.castShadow = true;
-    op.add(post);
-  }
-
-  // --- "Virtual Operator with Ai" banner + 2 supporting end-poles ---
-  // Spec: 3000mm chord × 540mm tall, 152.4mm sag (gentle convex curve).
-  // Stand: two end-poles 1820mm tall, 58mm square cross-section.
-  {
-    const bannerL = 3.0;
-    const bannerSag = 0.1524;
-    const bannerH = 0.54;
-    const bannerR = ((bannerL / 2) ** 2 + bannerSag ** 2) / (2 * bannerSag); // ≈ 7.46 m
-    const bannerHalf = Math.asin(bannerL / (2 * bannerR));                   // ≈ 11.6°
-    const bannerBottomY = 1.82;
-    const bannerCenterY = bannerBottomY + bannerH / 2;
-    const chordZ = 1.5;                              // op-local Z of the pole baseline
-    const cylZ   = chordZ - bannerR * Math.cos(bannerHalf);
-
-    function makeBannerCanvas(mirrored) {
-      const c = document.createElement('canvas');
-      c.width = 2048; c.height = 256;
-      const g = c.getContext('2d');
-      g.fillStyle = '#0a1a3a';
-      g.fillRect(0, 0, c.width, c.height);
-      g.strokeStyle = '#1f6fb8';
-      g.lineWidth = 4;
-      g.strokeRect(3, 3, c.width - 6, c.height - 6);
-      if (mirrored) { g.translate(c.width, 0); g.scale(-1, 1); }
-      g.fillStyle = '#ffd166';
-      g.font = 'bold 130px system-ui, sans-serif';
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      g.fillText('VIRTUAL OPERATOR WITH Ai', c.width / 2, c.height / 2);
-      const tex = new THREE.CanvasTexture(c);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      return tex;
-    }
-    const texOut = makeBannerCanvas(false);
-    const texIn  = makeBannerCanvas(true);
-    const geom = new THREE.CylinderGeometry(
-      bannerR, bannerR, bannerH,
-      64, 1, true,
-      -bannerHalf, bannerHalf * 2,
-    );
-    const matOut = new THREE.MeshStandardMaterial({
-      map: texOut, side: THREE.FrontSide, roughness: 0.7,
-      emissive: 0xffffff, emissiveMap: texOut, emissiveIntensity: 0.2,
-    });
-    const matIn = new THREE.MeshStandardMaterial({
-      map: texIn, side: THREE.BackSide, roughness: 0.7,
-      emissive: 0xffffff, emissiveMap: texIn, emissiveIntensity: 0.2,
-    });
-    const bannerOut = new THREE.Mesh(geom, matOut);
-    const bannerIn  = new THREE.Mesh(geom, matIn);
-    bannerOut.position.set(0, bannerCenterY, cylZ);
-    bannerIn.position.set(0, bannerCenterY, cylZ);
-    bannerOut.castShadow = true;
-    op.add(bannerOut, bannerIn);
-
-    // Two supporting poles at the banner's chord endpoints
-    const poleSize = 0.058;
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x0a1a3a, roughness: 0.6, metalness: 0.1 });
-    for (const sign of [-1, 1]) {
-      const pole = new THREE.Mesh(
-        new THREE.BoxGeometry(poleSize, bannerBottomY, poleSize),
-        poleMat,
-      );
-      pole.position.set(sign * (bannerL / 2), bannerBottomY / 2, chordZ);
-      pole.castShadow = true;
-      op.add(pole);
-    }
-  }
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-// Place along the right edge with some clearance from the booth edge
-addConsole({ id: 'console-1', x: 6 - 2.6, z: 0.3 });
-
-// --- Curved arc desk (standalone, was part of the console before) ---
-// DO-NOT-DELETE: kept intentionally even when not currently instantiated.
-function addArcDesk({ id, x = 0, z = 0 } = {}) {
-  const W = 1.6, D = 1.4, H = 0.74;
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: H, draggable: true };
-
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2b2f34, roughness: 0.65, metalness: 0.25 });
-  const topMat  = new THREE.MeshStandardMaterial({ color: 0xe4e6e9, roughness: 0.45, metalness: 0.1 });
-
-  function annularShape(innerR, outerR, halfLeft, halfRight = halfLeft) {
-    const s = new THREE.Shape();
-    const a0 = -Math.PI / 2 - halfLeft;
-    const a1 = -Math.PI / 2 + halfRight;
-    s.moveTo(outerR * Math.cos(a0), outerR * Math.sin(a0));
-    s.absarc(0, 0, outerR, a0, a1, false);
-    s.lineTo(innerR * Math.cos(a1), innerR * Math.sin(a1));
-    s.absarc(0, 0, innerR, a1, a0, true);
-    s.closePath();
-    return s;
-  }
-  const deskShape = annularShape(0.89, 1.35, Math.PI * 20 / 180, Math.PI * 55 / 180);
-  const bodyGeom = new THREE.ExtrudeGeometry(deskShape, { depth: 0.7, bevelEnabled: false, curveSegments: 48 });
-  bodyGeom.rotateX(-Math.PI / 2);
-  const body = new THREE.Mesh(bodyGeom, bodyMat);
-  body.castShadow = body.receiveShadow = true;
-  group.add(body);
-
-  const topGeom = new THREE.ExtrudeGeometry(deskShape, { depth: 0.04, bevelEnabled: false, curveSegments: 48 });
-  topGeom.rotateX(-Math.PI / 2);
-  const topMesh = new THREE.Mesh(topGeom, topMat);
-  topMesh.position.y = 0.7;
-  topMesh.castShadow = topMesh.receiveShadow = true;
-  group.add(topMesh);
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-// --- PC: 21" monitor on stand + keyboard (sits on a desk/table surface) ---
-function addPC({ id, x = 0, z = 0, screen = 'video' } = {}) {
-  const W = 0.5, D = 0.35, H = 1.1;
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: H, draggable: true };
-
-  const frameMat  = new THREE.MeshStandardMaterial({ color: 0x1a1c1f, roughness: 0.4, metalness: 0.7 });
-  const screenMat = screen === 'video'
-    ? makeScreenMaterial({ videoEl: screenVideoEl, mirror: false, intensity: 0.5, roughness: 0.22 })
-    : makeScreenMaterial({ path: screen,           mirror: false,                  roughness: 0.22 });
-
-  const oW = 0.465, oH = 0.262;
-  const deskTop = 0.74;
-  const my = deskTop + oH / 2 + 0.10; // screen centre above the desk top
-  const mon = new THREE.Group();
-  mon.add(
-    new THREE.Mesh(new THREE.BoxGeometry(oW + 0.03, oH + 0.03, 0.018), frameMat),
-    new THREE.Mesh(new THREE.BoxGeometry(oW, oH, 0.02), screenMat),
-  );
-  mon.children[0].position.z = -0.003;
-  mon.position.set(0, my, -0.09);
-  mon.rotation.x = 0.12;
-  mon.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-  group.add(mon);
-
-  // Monitor stand
-  const stand = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.05), frameMat);
-  stand.position.set(0, deskTop + 0.05, -0.09);
-  stand.castShadow = true;
-  group.add(stand);
-
-  // Keyboard in front of monitor
-  const kb = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.02, 0.14), frameMat);
-  kb.position.set(0, deskTop + 0.02, 0.08);
-  kb.castShadow = true;
-  group.add(kb);
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-// --- Foldable black table (60 × 60 × 74 cm, black top + metal legs) ---
-function addFoldingTable({ id, x = 0, z = 0 } = {}) {
-  const W = 0.60, D = 0.60, H = 0.74;
-  const topT = 0.04;
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: H, draggable: true };
-
-  const topMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.55, metalness: 0.15 });
-  const legMat = new THREE.MeshStandardMaterial({ color: 0xb0b3b8, roughness: 0.4,  metalness: 0.6 });
-
-  const top = new THREE.Mesh(new THREE.BoxGeometry(W, topT, D), topMat);
-  top.position.y = H - topT / 2;
-  top.castShadow = top.receiveShadow = true;
-  group.add(top);
-
-  const legH = H - topT;
-  const inset = 0.08;
-  const corners = [
-    [-W / 2 + inset, -D / 2 + inset], [ W / 2 - inset, -D / 2 + inset],
-    [ W / 2 - inset,  D / 2 - inset], [-W / 2 + inset,  D / 2 - inset],
-  ];
-  for (const [lx, lz] of corners) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, legH, 12), legMat);
-    leg.position.set(lx, legH / 2, lz);
-    leg.castShadow = true;
-    group.add(leg);
-  }
-  // Centre folding-hinge rail running front-to-back
-  const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.02, D - 0.1), legMat);
-  hinge.position.set(0, H - topT - 0.01, 0);
-  group.add(hinge);
-
-  // Draped tablecloth — a slightly oversized box covering the top and hanging
-  // almost to the floor, hides the legs.
-  const clothMat = new THREE.MeshStandardMaterial({
-    color: 0x0a1a3a, roughness: 0.9, metalness: 0,
-  });
-  const clothW = W + 0.04;
-  const clothD = D + 0.04;
-  const clothH = H;                // drape from just below floor to table top
-  const cloth = new THREE.Mesh(new THREE.BoxGeometry(clothW, clothH, clothD), clothMat);
-  cloth.position.set(0, clothH / 2, 0);
-  cloth.castShadow = true;
-  cloth.receiveShadow = true;
-  group.add(cloth);
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-// addArcDesk({ id: 'arc-desk-1', x: 3.5, z: 0.8 }); // hidden — uncomment to restore
-addPC({ id: 'pc-1', x: 3.4, z: 1.2, screen: 'video' });
-addPC({ id: 'pc-2', x: 4.0, z: 1.2, screen: 'assets/6.jpeg' });
-// Two 60×60×74 cm white boxes (replace the previous draped folding tables, same ids)
-addBox({ id: 'table-a', w: 0.6, d: 0.6, h: 0.74, x: 2.0, z: 2.7, color: 0xffffff, metal: false });
-addBox({ id: 'table-b', w: 0.6, d: 0.6, h: 0.74, x: 3.5, z: 2.7, color: 0xffffff, metal: false });
-
-// --- Queue poles: chrome stanchions with auto-connecting red straps ---
-const queuePoles = [];
-const queueStraps = [];
-const QUEUE_STRAP_Y = 0.92; // belt height (just below the top finial)
-
-function addQueuePole({ id, x = 0, z = 0 } = {}) {
-  const totalH = 1.0;
-  const W = 0.36, D = 0.36, H = totalH;
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: H, draggable: true };
-
-  const chromeMat = new THREE.MeshPhysicalMaterial({
-    color: 0xe2e6ea, metalness: 1.0, roughness: 0.18,
-    envMap: cubeRT.texture, envMapIntensity: 1.5,
-    clearcoat: 0.4, clearcoatRoughness: 0.15,
-  });
-  const baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.5, metalness: 0.4 });
-
-  // Heavy disc base
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.018, 32), baseMat);
-  base.position.y = 0.009;
-  base.castShadow = base.receiveShadow = true;
-  group.add(base);
-
-  // Tapered chrome weight above the base
-  const weight = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.06, 24), chromeMat);
-  weight.position.y = 0.018 + 0.03;
-  weight.castShadow = true;
-  group.add(weight);
-
-  // Slim post
-  const postBaseY = 0.018 + 0.06;
-  const postH = totalH - postBaseY - 0.06; // leave room for the top spool/finial
-  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, postH, 16), chromeMat);
-  post.position.y = postBaseY + postH / 2;
-  post.castShadow = true;
-  group.add(post);
-
-  // Belt-spool body near the top
-  const spool = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.06, 24), chromeMat);
-  spool.position.y = totalH - 0.06;
-  spool.castShadow = true;
-  group.add(spool);
-
-  // Top finial sphere
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.04, 24, 16), chromeMat);
-  cap.position.y = totalH - 0.02;
-  cap.castShadow = true;
-  group.add(cap);
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  queuePoles.push(group);
-  return group;
-}
-
-function makeQueueStrap() {
-  const geom = new THREE.BoxGeometry(1, 0.025, 0.012); // unit length, scaled per frame
-  const mat  = new THREE.MeshStandardMaterial({ color: 0xc02020, roughness: 0.6, metalness: 0.05 });
-  const mesh = new THREE.Mesh(geom, mat);
-  mesh.castShadow = true;
-  nonPickable(mesh); // straps shouldn't capture drag clicks
-  scene.add(mesh);
-  return mesh;
-}
-
-addQueuePole({ id: 'qp-1', x: 1.2, z: 0.6 });
-addQueuePole({ id: 'qp-2', x: 2.0, z: 0.6 });
-addQueuePole({ id: 'qp-3', x: 2.0, z: 1.4 });
-addQueuePole({ id: 'qp-4', x: 1.2, z: 1.4 });
-// 4 straps form a closed loop (1→2→3→4→1)
-for (let i = 0; i < 4; i++) queueStraps.push(makeQueueStrap());
-
-
-// --- Standing display box (white plinth + glass cover) ---
-function addDisplayBox({ id, x = 0, z = 0 } = {}) {
-  const W = 0.30, D = 0.30;
-  const baseH = 0.90;
-  const coverH = 0.30;
-  const totalH = baseH + coverH;
-
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: totalH, draggable: true };
-
-  // Branded plinth: dark blue with white text on each face
-  function makeUnysisTex() {
-    const c = document.createElement('canvas');
-    c.width = 256; c.height = 768;
-    const g = c.getContext('2d');
-    g.fillStyle = '#0a1a3a';
-    g.fillRect(0, 0, c.width, c.height);
-    g.fillStyle = '#ffffff';
-    g.font = 'bold 120px system-ui, sans-serif';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    const letters = ['U', 'N', 'Y', 'S', 'I', 'S'];
-    const step = c.height / (letters.length + 1);
-    letters.forEach((ch, i) => g.fillText(ch, c.width / 2, step * (i + 1)));
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    return t;
-  }
-  function makeBioenergyTex() {
-    const c = document.createElement('canvas');
-    c.width = 256; c.height = 768;
-    const g = c.getContext('2d');
-    g.fillStyle = '#0a1a3a';
-    g.fillRect(0, 0, c.width, c.height);
-    g.fillStyle = '#ffffff';
-    g.font = 'bold 84px system-ui, sans-serif';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    const letters = ['B', 'I', 'O', 'E', 'N', 'E', 'R', 'G', 'Y'];
-    const step = c.height / (letters.length + 1);
-    letters.forEach((ch, i) => g.fillText(ch, c.width / 2, step * (i + 1)));
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    return t;
-  }
-  const sideMat   = new THREE.MeshStandardMaterial({ map: makeUnysisTex(),    roughness: 0.7 });
-  const frontMat  = new THREE.MeshStandardMaterial({ map: makeBioenergyTex(), roughness: 0.7 });
-  const capMat    = new THREE.MeshStandardMaterial({ color: 0x0a1a3a, roughness: 0.7 });
-  const baseMats = [
-    sideMat,   // +X right
-    sideMat,   // -X left
-    capMat,    // +Y top
-    capMat,    // -Y bottom
-    frontMat,  // +Z front
-    frontMat,  // -Z back
-  ];
-  const base = new THREE.Mesh(new THREE.BoxGeometry(W, baseH, D), baseMats);
-  base.position.y = baseH / 2;
-  base.castShadow = true;
-  base.receiveShadow = true;
-  group.add(base);
-
-  // Transparent cover (acrylic/glass box)
-  const coverMat = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    transmission: 1.0,
-    transparent: true,
-    opacity: 1.0,
-    roughness: 0.05,
-    metalness: 0,
-    ior: 1.5,
-    thickness: 0.01,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.05,
-  });
-  const cover = new THREE.Mesh(new THREE.BoxGeometry(W, coverH, D), coverMat);
-  cover.position.y = baseH + coverH / 2;
-  cover.castShadow = true;
-  nonPickable(cover);
-  group.add(cover);
-
-  // Subtle edge lines for the cover so it reads as a glass box
-  const edges = new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.BoxGeometry(W, coverH, D)),
-    new THREE.LineBasicMaterial({ color: 0xbfd3e0 })
-  );
-  edges.position.y = baseH + coverH / 2;
-  nonPickable(edges);
-  group.add(edges);
-
-  // Small black product box inside the cover (13 × 9 × 8 cm) — rotates slowly
-  const itemW = 0.13, itemD = 0.09, itemH = 0.08;
-  const itemMat = new THREE.MeshStandardMaterial({ color: 0x0f0f10, roughness: 0.5, metalness: 0.25 });
-  const item = new THREE.Mesh(new THREE.BoxGeometry(itemW, itemH, itemD), itemMat);
-  item.position.set(0, baseH + itemH / 2, 0);
-  item.castShadow = true;
-  item.receiveShadow = true;
-  group.add(item);
-  animatedItems.push(item);
-
-  // Hidden spotlight at the top inside the cover, aimed down at the product
-  const spotInside = new THREE.SpotLight(0xffffff, 6, 0.6, Math.PI / 5, 0.4, 1.6);
-  spotInside.position.set(0, baseH + coverH - 0.02, 0);
-  spotInside.target.position.set(0, baseH + itemH / 2, 0);
-  spotInside.castShadow = false; // no visible fixture — just the light
-  group.add(spotInside);
-  group.add(spotInside.target);
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-addDisplayBox({ id: 'display-2', x: 2.4, z: 1.8 });
-
-// --- Human figure (170 cm, simple mannequin) ---
-function addHuman({ id, x = 0, z = 0 } = {}) {
-  const TOTAL_H = 1.70;
-  const W = 0.45, D = 0.30, H = TOTAL_H;
-
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: H, draggable: true };
-
-  const skinMat  = new THREE.MeshStandardMaterial({ color: 0xe8c9a8, roughness: 0.7 });
-  const shirtMat = new THREE.MeshStandardMaterial({ color: 0x2f5fa8, roughness: 0.8 });
-  const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e2530, roughness: 0.85 });
-  const shoeMat  = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 });
-  const hairMat  = new THREE.MeshStandardMaterial({ color: 0x2a1a0e, roughness: 0.9 });
-
-  // y-budget (from feet up): shoes 0.04, legs 0.83, torso 0.55, neck 0.05, head 0.23 = 1.70
-  const hShoes = 0.04, hLegs = 0.83, hTorso = 0.55, hNeck = 0.05, hHead = 0.23;
-
-  // Shoes
-  for (const sx of [-0.08, 0.08]) {
-    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.10, hShoes, 0.22), shoeMat);
-    shoe.position.set(sx, hShoes / 2, 0.02);
-    shoe.castShadow = true; shoe.receiveShadow = true;
-    group.add(shoe);
-  }
-
-  // Legs (two cylinders)
-  for (const sx of [-0.08, 0.08]) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, hLegs, 16), pantsMat);
-    leg.position.set(sx, hShoes + hLegs / 2, 0);
-    leg.castShadow = true; leg.receiveShadow = true;
-    group.add(leg);
-  }
-
-  // Torso
-  const torsoY = hShoes + hLegs + hTorso / 2;
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.36, hTorso, 0.22), shirtMat);
-  torso.position.y = torsoY;
-  torso.castShadow = true; torso.receiveShadow = true;
-  group.add(torso);
-
-  // Arms (two cylinders angled slightly outward)
-  for (const side of [-1, 1]) {
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.60, 16), shirtMat);
-    arm.position.set(side * 0.22, torsoY + 0.05, 0);
-    arm.rotation.z = side * 0.06;
-    arm.castShadow = true;
-    group.add(arm);
-    // Hand
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 12), skinMat);
-    hand.position.set(side * 0.245, hShoes + hLegs + 0.02, 0);
-    hand.castShadow = true;
-    group.add(hand);
-  }
-
-  // Neck
-  const neckY = hShoes + hLegs + hTorso + hNeck / 2;
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, hNeck, 16), skinMat);
-  neck.position.y = neckY;
-  neck.castShadow = true;
-  group.add(neck);
-
-  // Head
-  const headR = hHead / 2;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 24, 20), skinMat);
-  head.position.y = hShoes + hLegs + hTorso + hNeck + headR;
-  head.castShadow = true;
-  group.add(head);
-
-  // Hair cap
-  const hair = new THREE.Mesh(
-    new THREE.SphereGeometry(headR * 1.02, 24, 20, 0, Math.PI * 2, 0, Math.PI * 0.55),
-    hairMat,
-  );
-  hair.position.copy(head.position);
-  hair.castShadow = true;
-  group.add(hair);
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-// Place at the operator seat position inside the console
-addHuman({ id: 'human-1', x: 4.7 - 0.225, z: 0.85 - 0.15 });
-
-// --- Standing TV (70", floor stand, total height 2 m) ---
-function addStandingTV({ id, x = 0, z = 0, diagIn = 70, totalH = 2.0, aspect = 16 / 9 } = {}) {
-  const diag = diagIn * 0.0254;
-  const tvW = diag * aspect / Math.hypot(aspect, 1);
-  const tvH = diag * 1       / Math.hypot(aspect, 1);
-
-  const baseW = Math.max(0.6, tvW * 0.45), baseD = 0.4, baseT = 0.03;
-  const W = Math.max(tvW, baseW), D = baseD, H = totalH;
-  const tvCenterY = totalH - tvH / 2;
-
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: H, draggable: true };
-
-  const frameMat  = new THREE.MeshStandardMaterial({ color: 0x0f0f10, roughness: 0.4, metalness: 0.5 });
-  const baseMat   = new THREE.MeshStandardMaterial({ color: 0x1a1a1d, roughness: 0.5, metalness: 0.6 });
-  // Standing TV plays display.mp4 (not rotated, so no U-mirror).
-  const screenMat = makeScreenMaterial({ videoEl: displayVideoEl, intensity: 0.5, roughness: 0.22 });
-
-  // Base plate
-  const base = new THREE.Mesh(new THREE.BoxGeometry(baseW, baseT, baseD), baseMat);
-  base.position.set(0, baseT / 2, 0);
-  base.castShadow = base.receiveShadow = true;
-  group.add(base);
-
-  // Vertical pole behind the TV
-  const pole = new THREE.Mesh(new THREE.BoxGeometry(0.09, totalH - baseT, 0.09), frameMat);
-  pole.position.set(0, baseT + (totalH - baseT) / 2, -0.12);
-  pole.castShadow = true;
-  group.add(pole);
-
-  // TV frame + screen (screen faces +Z)
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(tvW + 0.04, tvH + 0.04, 0.06), frameMat);
-  frame.position.set(0, tvCenterY, -0.04);
-  frame.castShadow = true;
-  group.add(frame);
-  const screen = new THREE.Mesh(new THREE.BoxGeometry(tvW, tvH, 0.015), screenMat);
-  screen.position.set(0, tvCenterY, -0.002);
-  group.add(screen);
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-addStandingTV({ id: 'tv-1', x: 2.5, z: 2.7, totalH: 1.6, diagIn: 60 });
-
-// --- Transparent glass case with 2×3 round plates inside ---
-function addGlassCase({ id, x = 0, z = 0 } = {}) {
-  const W = 2 * 0.3048, D = 2 * 0.3048, H = 1.5; // 2 ft × 2 ft × 1.5 m
-  const group = new THREE.Group();
-  group.userData = { id, w: W, d: D, h: H, draggable: true };
-
-  // --- Base plate under the holographic display (100 × 64 cm) ---
-  {
-    const plateW = 1.0, plateD = 0.64, plateT = 0.05;
-    const plateMat = new THREE.MeshStandardMaterial({ color: 0x1f2226, roughness: 0.55, metalness: 0.25 });
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(plateW, plateT, plateD), plateMat);
-    plate.position.set(0, plateT / 2, 0);
-    plate.castShadow = true;
-    plate.receiveShadow = true;
-    group.add(plate);
-    // Widen the group's draggable footprint so the bigger base still clamps correctly
-    group.userData.w = Math.max(group.userData.w, plateW);
-    group.userData.d = Math.max(group.userData.d, plateD);
-  }
-
-  // --- Black display frame ---
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.55, metalness: 0.45 });
-  const colsX = [-W / 4, +W / 4];
-  const rowsY = [0.35, 0.80, 1.25];
-
-  // 2 vertical posts, one through each fan column
-  for (const px of colsX) {
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.035, H, 0.035), frameMat);
-    post.position.set(px, H / 2, 0);
-    post.castShadow = true;
-    group.add(post);
-  }
-  // 3 horizontal crossbars (one per row), spanning the two posts
-  for (const py of rowsY) {
-    const beamLen = colsX[1] - colsX[0] + 0.035;
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(beamLen, 0.035, 0.035), frameMat);
-    beam.position.set(0, py, 0);
-    group.add(beam);
-  }
-
-  // --- 6 hologram fan displays (spinning blades blurred into a glowing disc) ---
-  function makeHoloFan(R) {
-    const fan = new THREE.Group();
-    const hubMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.5, metalness: 0.4 });
-    const discMat = new THREE.MeshStandardMaterial({
-      color: 0x2a8cff, emissive: 0x2a8cff, emissiveIntensity: 1.2, roughness: 0.3,
-      transparent: true, opacity: 0.45, side: THREE.DoubleSide,
-    });
-    // Glowing disc (blades blurred at speed)
-    const disc = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.006, 48), discMat);
-    disc.rotation.x = Math.PI / 2;
-    fan.add(disc);
-    // Central hub in front of the disc
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.025, 24), hubMat);
-    hub.rotation.x = Math.PI / 2;
-    hub.position.z = 0.008;
-    fan.add(hub);
-    return fan;
-  }
-
-  const fanR = 0.10;
-  for (const py of rowsY) {
-    for (const px of colsX) {
-      const fan = makeHoloFan(fanR);
-      fan.position.set(px, py, 0.03); // slightly in front of the crossbar
-      group.add(fan);
-    }
-  }
-
-  // --- Glass cover in front of the display with the cleanroom-operator image ---
-  {
-    const glassW = 0.85, glassH = 1.65;
-    const glassCenterY = glassH / 2;
-    const glassZ = 0.36; // in front of the base plate / fans
-
-    // Tinted glass pane (lets the fans show through subtly)
-    const glassPaneMat = new THREE.MeshPhysicalMaterial({
-      color: 0xdfeaf4,
-      transmission: 0.95, transparent: true, opacity: 1.0,
-      roughness: 0.05, metalness: 0, ior: 1.5, thickness: 0.02,
-      clearcoat: 1.0, clearcoatRoughness: 0.05,
-    });
-    const glassPane = new THREE.Mesh(new THREE.BoxGeometry(glassW, glassH, 0.02), glassPaneMat);
-    glassPane.position.set(0, glassCenterY, glassZ);
-    nonPickable(glassPane);
-    group.add(glassPane);
-    // Edge outline so the glass reads as a pane
-    const glassEdges = new THREE.LineSegments(
-      new THREE.EdgesGeometry(new THREE.BoxGeometry(glassW, glassH, 0.02)),
-      new THREE.LineBasicMaterial({ color: 0xbfd3e0 }),
-    );
-    glassEdges.position.copy(glassPane.position);
-    nonPickable(glassEdges);
-    group.add(glassEdges);
-
-    // Additive-blended operator hologram. Start with a JPEG so something renders
-    // immediately, then swap in a VideoTexture once the MP4 is ready.
-    const opTex = new THREE.TextureLoader().load('assets/operator.jpeg');
-    opTex.colorSpace = THREE.SRGBColorSpace;
-    opTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    const opVideoEl = makeVideoElement('assets/operator.mp4');
-    opVideoEl.addEventListener('canplay', () => {
-      const vt = makeScreenVideoTexture({ videoEl: opVideoEl, mirror: false });
-      overlayMat.map = vt;
-      overlayMat.needsUpdate = true;
-      overlayBack.material.map = vt;
-      overlayBack.material.needsUpdate = true;
-    });
-    const overlayMat = new THREE.MeshBasicMaterial({
-      map: opTex, transparent: true, depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    const overlay = new THREE.Mesh(
-      new THREE.PlaneGeometry(glassW - 0.04, glassH - 0.04),
-      overlayMat,
-    );
-    overlay.position.set(0, glassCenterY, glassZ + 0.012);
-    nonPickable(overlay);
-    group.add(overlay);
-
-    // A matching pane on the back so the overlay reads from the other side too
-    const overlayBack = overlay.clone();
-    overlayBack.position.z = glassZ - 0.012;
-    overlayBack.rotation.y = Math.PI;
-    nonPickable(overlayBack);
-    group.add(overlayBack);
-
-    // Keep the draggable footprint wide enough to include the pane
-    group.userData.w = Math.max(group.userData.w, glassW);
-    group.userData.d = Math.max(group.userData.d, glassZ * 2 + 0.05);
-  }
-
-  const saved = savedLayout[id];
-  if (saved) {
-    group.position.set(saved.x, 0, saved.z);
-    group.rotation.y = saved.ry ?? 0;
-  } else {
-    group.position.set(x + W / 2, 0, z + D / 2);
-  }
-  scene.add(group);
-  furniture.push(group);
-  return group;
-}
-
-addGlassCase({ id: 'case-1', x: 0.3, z: 2.3 });
-
-
-// Clamp everything loaded from saved layout back inside the 10×10 m area,
-// in case an object was dragged out before bounds-clamping was added.
-for (const m of furniture) {
-  const { w, d } = m.userData;
-  m.position.x = THREE.MathUtils.clamp(m.position.x, BOUND_MIN + w / 2, BOUND_MAX - w / 2);
-  m.position.z = THREE.MathUtils.clamp(m.position.z, BOUND_MIN + d / 2, BOUND_MAX - d / 2);
-}
-saveLayout();
-
-// --- Drag logic ---
-// Flow: mousedown on a box -> cursor 'grabbing', orbit disabled
-//       mousemove while held -> box follows pointer (snapped)
-//       mouseup anywhere -> save location, cursor back to default, orbit re-enabled
-const canvas = renderer.domElement;
-const raycaster = new THREE.Raycaster();
-// Default line raycast threshold is 1 metre — absurdly generous for picking.
-// Tighten so edge-outline meshes don't inflate draggable hit areas.
-raycaster.params.Line.threshold = 0.005;
-const pointer = new THREE.Vector2();
-const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-const hitPoint = new THREE.Vector3();
-const grabOffset = new THREE.Vector3();
-
-const ROT_SNAP = Math.PI / 12; // 15°
-const drag = {
-  obj: null,
-  mode: 'none', // 'move' | 'rotate' | 'light'
-  startAngle: 0,
-  startRotY: 0,
-  lightPlane: new THREE.Plane(new THREE.Vector3(0, 0, 1), 0),
-};
-
-function setPointerNDC(clientX, clientY) {
-  const rect = canvas.getBoundingClientRect();
-  pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-  pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-}
-
-function pickFurniture(clientX, clientY) {
-  setPointerNDC(clientX, clientY);
-  raycaster.setFromCamera(pointer, activeCamera);
-  const hits = raycaster.intersectObjects(furniture, true);
-  if (!hits.length) return null;
-  const roots = new Set(furniture);
-  let node = hits[0].object;
-  while (node && !roots.has(node)) node = node.parent;
-  return node || null;
-}
-
-function onMouseDown(e) {
-  if (e.button !== 0) return;
-  const obj = pickFurniture(e.clientX, e.clientY);
-  if (!obj) return;
-  drag.obj = obj;
-
-  if (obj.userData.isLight) {
-    // Drag in the vertical XY plane passing through the light's current Z
-    drag.mode = 'light';
-    drag.lightPlane.set(new THREE.Vector3(0, 0, 1), -obj.position.z);
-    raycaster.ray.intersectPlane(drag.lightPlane, hitPoint);
-    grabOffset.set(hitPoint.x - obj.position.x, hitPoint.y - obj.position.y, 0);
-    document.body.style.cursor = 'grabbing';
-  } else if (e.shiftKey) {
-    raycaster.ray.intersectPlane(dragPlane, hitPoint);
-    drag.mode = 'rotate';
-    drag.startAngle = Math.atan2(hitPoint.x - obj.position.x, hitPoint.z - obj.position.z);
-    drag.startRotY  = obj.rotation.y;
-    document.body.style.cursor = 'ew-resize';
-  } else {
-    raycaster.ray.intersectPlane(dragPlane, hitPoint);
-    drag.mode = 'move';
-    grabOffset.set(hitPoint.x - obj.position.x, 0, hitPoint.z - obj.position.z);
-    document.body.style.cursor = 'grabbing';
-  }
-
-  controls.enabled = false;
-  e.preventDefault();
-  e.stopPropagation();
-}
-
-function onMouseMove(e) {
-  if (!drag.obj) return;
-  if (e.buttons === 0) { onMouseUp(e); return; }
-  setPointerNDC(e.clientX, e.clientY);
-  raycaster.setFromCamera(pointer, activeCamera);
-  const plane = drag.mode === 'light' ? drag.lightPlane : dragPlane;
-  if (!raycaster.ray.intersectPlane(plane, hitPoint)) return;
-
-  if (drag.mode === 'light') {
-    let nx = Math.round((hitPoint.x - grabOffset.x) / SNAP) * SNAP;
-    let ny = Math.round((hitPoint.y - grabOffset.y) / SNAP) * SNAP;
-    nx = THREE.MathUtils.clamp(nx, BOUND_MIN, BOUND_MAX);
-    ny = THREE.MathUtils.clamp(ny, 0.2, 4.0);
-    drag.obj.position.x = nx;
-    drag.obj.position.y = ny;
-    return;
-  }
-
-  if (drag.mode === 'rotate') {
-    const a = Math.atan2(hitPoint.x - drag.obj.position.x, hitPoint.z - drag.obj.position.z);
-    let ry = drag.startRotY + (a - drag.startAngle);
-    ry = Math.round(ry / ROT_SNAP) * ROT_SNAP;
-    drag.obj.rotation.y = ry;
-  } else {
-    const { w, d } = drag.obj.userData;
-    const halfW = w / 2, halfD = d / 2;
-    let cx = Math.round((hitPoint.x - grabOffset.x) / SNAP) * SNAP;
-    let cz = Math.round((hitPoint.z - grabOffset.z) / SNAP) * SNAP;
-    cx = THREE.MathUtils.clamp(cx, BOUND_MIN + halfW, BOUND_MAX - halfW);
-    cz = THREE.MathUtils.clamp(cz, BOUND_MIN + halfD, BOUND_MAX - halfD);
-    drag.obj.position.x = cx;
-    drag.obj.position.z = cz;
-  }
-}
-
-function onMouseUp() {
-  if (!drag.obj) return;
-  saveLayout();
-  drag.obj = null;
-  drag.mode = 'none';
-  controls.enabled = true;
-  document.body.style.cursor = '';
-}
-
-// Start on the canvas (so empty-space clicks still reach OrbitControls),
-// finish anywhere so we never get stuck.
-canvas.addEventListener('mousedown', onMouseDown, { capture: true });
-window.addEventListener('mousemove', onMouseMove);
-window.addEventListener('mouseup', onMouseUp);
-window.addEventListener('blur', onMouseUp);
-document.addEventListener('visibilitychange', () => { if (document.hidden) onMouseUp(); });
-
-// --- Grid helper (1m, under the floor so it shows around the booth) ---
-// Center placed so gridlines land on integer coords — i.e. through booth corners (0,0), (6,0), (0,3), (6,3).
-const grid = new THREE.GridHelper(30, 30, 0x8a8f95, 0x6a7076);
-grid.material.opacity = 0.9;
-grid.material.transparent = true;
-grid.position.set(3, 0, 2);
-scene.add(grid);
-
-// Y reference grid: booth-footprint rings every 0.5 m plus corner posts
-const yGrid = new THREE.Group();
-{
-  const yMax = 3.0;
-  const lineMat = new THREE.LineBasicMaterial({ color: 0x9aa3aa, transparent: true, opacity: 0.55 });
-  for (let y = 0.5; y <= yMax + 1e-6; y += 0.5) {
-    const pts = [
-      new THREE.Vector3(0, y, 0),
-      new THREE.Vector3(ROOM_W, y, 0),
-      new THREE.Vector3(ROOM_W, y, ROOM_D),
-      new THREE.Vector3(0, y, ROOM_D),
-      new THREE.Vector3(0, y, 0),
-    ];
-    yGrid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
-  }
-  for (const [cx, cz] of [[0, 0], [ROOM_W, 0], [ROOM_W, ROOM_D], [0, ROOM_D]]) {
-    const pts = [new THREE.Vector3(cx, 0, cz), new THREE.Vector3(cx, yMax, cz)];
-    yGrid.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
-  }
-}
-yGrid.visible = false;
-scene.add(yGrid);
-
-// --- Axes for orientation (small, at origin) ---
-const axes = new THREE.AxesHelper(0.6);
-axes.position.set(0, 0.01, 0);
-scene.add(axes);
-
-// --- Dimension labels (sprites) ---
-function makeLabel(text) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256; canvas.height = 64;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#ffd166';
-  ctx.font = 'bold 32px system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-  sprite.scale.set(1.2, 0.3, 1);
-  return sprite;
-}
-
-const labelW = makeLabel('6 m');
-labelW.position.set(ROOM_W / 2, 0.05, ROOM_D + 0.5);
-scene.add(labelW);
-
-const labelD = makeLabel('3 m');
-labelD.position.set(ROOM_W + 0.5, 0.05, ROOM_D / 2);
-scene.add(labelD);
-
-// --- Camera presets ---
-const presets = {
-  persp: { pos: [7, 6, 7], target: center.clone() },
-  top:   { pos: [ROOM_W / 2, 12, ROOM_D / 2 + 0.001], target: center.clone() },
-  front: { pos: [ROOM_W / 2, 2.5, 10], target: center.clone() },
-};
-
-function setView(name) {
-  const p = presets[name];
-  camera.position.set(...p.pos);
-  controls.target.copy(p.target);
-  controls.update();
-  document.querySelectorAll('#controls button').forEach(b => b.classList.remove('active'));
-  document.getElementById('view-' + name).classList.add('active');
-}
-document.getElementById('view-persp').onclick = () => setView('persp');
-document.getElementById('view-top').onclick   = () => setView('top');
-document.getElementById('view-front').onclick = () => setView('front');
-
-const gridBtn = document.getElementById('toggle-grid');
-gridBtn.onclick = () => {
-  grid.visible = !grid.visible;
-  labelW.visible = grid.visible;
-  labelD.visible = grid.visible;
-  // Hide bulb meshes alongside the grid (keep the PointLight child rendering
-  // so illumination stays on — toggling only the material hides the fixture).
-  for (const obj of furniture) {
-    if (obj.userData.isLight) obj.material.visible = grid.visible;
-  }
-  gridBtn.classList.toggle('active', grid.visible);
-};
-
-const yGridBtn = document.getElementById('toggle-ygrid');
-yGridBtn.onclick = () => {
-  yGrid.visible = !yGrid.visible;
-  yGridBtn.classList.toggle('active', yGrid.visible);
-};
-
-const isoBtn = document.getElementById('toggle-iso');
-isoBtn.onclick = () => {
-  const turningOn = activeCamera === camera;
-  activeCamera = turningOn ? isoCamera : camera;
-  if (turningOn) fitIsoFrustum();
-  bindControls(activeCamera);
-  isoBtn.classList.toggle('active', turningOn);
-};
-
-const resetBtn = document.getElementById('reset-layout');
-resetBtn.onclick = () => {
-  if (!confirm('Clear saved layout and reload with the default positions?')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  location.reload();
-};
-
-// --- Resize ---
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  fitIsoFrustum();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// --- Loop ---
-const ROT_PER_SEC = Math.PI / 180; // 1°/s
-let reflectFrame = 0;
-function updateQueueStraps() {
-  const n = queuePoles.length;
-  for (let i = 0; i < queueStraps.length; i++) {
-    const a = queuePoles[i].position;
-    const b = queuePoles[(i + 1) % n].position;
-    const dx = b.x - a.x, dz = b.z - a.z;
-    const len = Math.hypot(dx, dz);
-    const s = queueStraps[i];
-    s.position.set((a.x + b.x) / 2, QUEUE_STRAP_Y, (a.z + b.z) / 2);
-    s.scale.x = Math.max(len, 0.001);
-    s.rotation.y = -Math.atan2(dz, dx);
-  }
-}
-function tick() {
-  const dt = animClock.getDelta();
-  for (const o of animatedItems) o.rotation.y += ROT_PER_SEC * dt;
-  updateQueueStraps();
-  // Refresh the scene reflection every other frame to keep cost reasonable.
-  if ((reflectFrame++ & 1) === 0) cubeCam.update(renderer, scene);
-  controls.update();
-  renderer.render(scene, activeCamera);
-  requestAnimationFrame(tick);
-}
-tick();
-</script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

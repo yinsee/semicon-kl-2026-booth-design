@@ -1,19 +1,48 @@
-# Exhibition Booth — 3D Floor Plan
+# Exhibition Booths — 3D editor
 
-Interactive WebGL visualization of a 6 × 3 m exhibition booth, built with Three.js.
+Interactive WebGL booth editor built with Three.js. One app (`index.html`) opens several booth
+projects; each booth is described in a JSON file and its furniture are shared GLB models.
 
 ## Usage
 
-Drag objects on the floor; **Shift + drag** to rotate (15° snap). Drag the light bulbs to move them in X / Y. Click **Export** in the top-right to copy the current layout JSON to the clipboard.
+Open the app, pick a project on the start screen (or go straight to `index.html#/japan2026`,
+`index.html#/booth-6x3`). The grid button at the top left returns to the project list.
 
-Positions are saved to `localStorage` (`exhibition-booth-layout-v1`); `DEFAULT_LAYOUT` in `index.html` is used when no save exists.
+- **Click** an item (in the 3D view or the Items list) to select it; drag the selected item to move it,
+  **Shift + drag** to rotate (15° snap). Light bulbs move in X / Y, wall posters slide along their wall,
+  items on a counter or table stay on it (Shift + drag on the monitor arm swivels it).
+- **Double-click** locks / unlocks an item; the eye icon in the Items list shows / hides it.
+- The Properties pane shows sizes, the lock switch, arm sliders and the screen / graphic pickers.
+- Views: perspective, top, front, visitor (eye height, look around), iso. Guides: floor grid, height grid.
+- **Ctrl/⌘ + Z** undoes; **Reset** clears this project's saved layout.
+
+Changes are saved in the browser (`localStorage`, one key per project). The defaults come from
+`defaultLayout` in the project JSON — edit that file to change them for everyone.
 
 ## Local preview
 
-No build step — just open `index.html` in a browser, or:
+No build step. Serve the folder (the app loads JSON + GLB files with `fetch`):
 
 ```
 python3 -m http.server 8000
 ```
 
-then visit <http://localhost:8000>.
+then visit <http://localhost:8000>. `japan2026.html` still works as a link; it redirects to `#/japan2026`.
+
+## Files
+
+| Path | What |
+|---|---|
+| `index.html` | App shell: editor UI + project menu |
+| `js/main.js`, `js/engine/*.js` | Router and editor engine |
+| `projects/index.json` | Project list for the start screen |
+| `projects/<id>.json` | One booth: room, walls, fascia, lights, views, screens, graphics, items, default layout |
+| `assets/models/*.glb` + `manifest.json` | Shared furniture models + their footprint |
+| `tools/models/` | Model source (`factories.js`) and the GLB build (`build.py`) |
+
+To rebuild the GLB models after changing `tools/models/factories.js`:
+
+```
+python3 tools/models/build.py            # all models (needs Playwright + Chrome)
+python3 tools/models/build.py tv-42 pc   # only some
+```
