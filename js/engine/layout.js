@@ -1,10 +1,10 @@
 // Layout persistence (localStorage, one key per project) and undo.
 // Saved per item: { x, y, z, ry } + screen / screens, local (anchored), arm, locked, hidden, graphic,
-// barrier + barrierLoop (pole count and belt loop of an item with barrier poles).
+// barrier + barrierLoop (pole count and belt loop of an item with barrier poles), tv (size + height).
 // With nothing saved the project's `defaultLayout` is used (that is what Reset goes back to).
 import { S } from './state.js';
 import { setScreenEntry, setGraphic } from './media.js';
-import { updateArm, setBarrierCount, setBarrierLoop } from './items.js';
+import { updateArm, updateTV, setBarrierCount, setBarrierLoop } from './items.js';
 import { drag } from './interact.js';
 import { showInfo, updateStatus, buildItemList } from './ui.js';
 
@@ -35,6 +35,7 @@ export function saveLayout() {
     else if (screens?.length > 1) e.screens = screens.map(s => s.key);
     if (m.userData.parentId) e.local = true; // coords are relative to the parent
     if (m.userData.arm) e.arm = { ...m.userData.arm };
+    if (m.userData.tv) e.tv = { diag: m.userData.tv.diag, height: m.userData.tv.height };
     if (m.userData.locked) e.locked = true;
     if (!m.visible) e.hidden = true;
     if (m.userData.graphic) e.graphic = m.userData.graphic;
@@ -91,6 +92,7 @@ function applyLayoutState(state) {
     if (st.screen && screens.length === 1) setScreenEntry(screens[0], st.screen);
     if (st.screens) st.screens.forEach((k, i) => screens[i] && setScreenEntry(screens[i], k));
     if (st.arm && m.userData.arm) { Object.assign(m.userData.arm, st.arm); updateArm(m); }
+    if (st.tv && m.userData.tv) { Object.assign(m.userData.tv, st.tv); updateTV(m); }
     m.userData.locked = !!st.locked;
     m.visible = !st.hidden;
     if (st.graphic && m.userData.graphicMat) setGraphic(m, st.graphic);

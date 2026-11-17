@@ -111,6 +111,7 @@ function onMouseDown(e) {
     grabOffset.set(hitPoint.x - obj.position.x, 0, hitPoint.z - obj.position.z);
     document.body.style.cursor = 'grabbing';
   }
+  C.renderer.domElement.style.cursor = '';   // body cursor (grabbing / ew-resize) shows during the drag
   C.controls.enabled = false;
   e.preventDefault();
   e.stopPropagation();
@@ -215,8 +216,30 @@ export function clampAll() {
   }
 }
 
+// Hover cursor (when not dragging): open hand on the selected, unlocked item (a drag moves it;
+// Shift = rotate), pointing hand on other items (a click selects them), default elsewhere.
+let hoverQueued = false;
+function updateHoverCursor(e) {
+  const canvas = C.renderer.domElement;
+  if (drag.obj || !S.project || e.target !== canvas || (e.buttons & 1)) return;
+  if (hoverQueued) return;
+  hoverQueued = true;
+  const { clientX, clientY, shiftKey } = e;
+  requestAnimationFrame(() => {
+    hoverQueued = false;
+    if (drag.obj) return;
+    const obj = pickFurniture(clientX, clientY);
+    let cursor = '';
+    if (obj && obj === S.infoObj && !obj.userData.locked) cursor = shiftKey && !obj.userData.isLight && obj.userData.wallX === undefined ? 'ew-resize' : 'grab';
+    else if (obj) cursor = 'pointer';
+    canvas.style.cursor = cursor;
+  });
+}
+
 export function initInteraction() {
   const canvas = C.renderer.domElement;
+  canvas.addEventListener('mousemove', updateHoverCursor);
+  canvas.addEventListener('mouseleave', () => { canvas.style.cursor = ''; });
   canvas.addEventListener('mousedown', onMouseDown, { capture: true });
   // Double-click an item to lock / unlock it (locked items cannot be moved, rotated or adjusted)
   canvas.addEventListener('dblclick', (e) => {

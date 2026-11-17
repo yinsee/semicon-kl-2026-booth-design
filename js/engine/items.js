@@ -10,8 +10,10 @@
 //   wall       { side: 'left'|'right', bottom }    graphic   { sources, default, roughness }
 //   screen     { default, intensity, roughness }   screens [{ role, label, default, … }]
 //   arm        { swivel, a1, a2 }  (monitor arm)   hologram  { image, video }
-//   spin       rotate the 'spin' part 1°/s         spotlight { intensity, distance, angle, penumbra, decay, y, targetY }
+//   turntable  { model, y } product shown on top, turning 1°/s   spotlight { intensity, distance, angle, penumbra, decay, y, targetY }
 //   envmap     bind the live reflection to 'envmap' parts
+//   tv         { diag, height } standing TV: screen diagonal (inches) and top-edge height (m), set per item
+//              on the shared standing-tv model (Properties: Screen size / Height). Saved as `tv`.
 //   barrier    { model, count, min, max, closed, poles: [{ id, name, seq, at }] } — barrier poles that
 //              belong to this item: they move with it, can each be dragged freely on the floor, and are
 //              joined in `seq` order by red belts. `count` (min..max) poles are active; `closed` loops the
@@ -82,6 +84,19 @@ function buildModelItem(def) {
     Object.assign(root.userData, { h: 0.4, screenH: meta.screenH, arm: { ...def.arm, ...(saved?.arm ?? {}) } });
     updateArm(root);
   }
+  if (def.tv) {
+    root.userData.tv = { ...def.tv, ...(saved?.tv ?? {}) };
+    root.userData.tvMeta = meta;
+    updateTV(root);
+  }
+  if (def.turntable) {
+    // Product on show (e.g. inside a display cover): its own model, turning slowly
+    const spinner = new THREE.Group();
+    spinner.position.y = def.turntable.y ?? 0;
+    root.add(spinner);
+    addModel(spinner, def.turntable.model);
+    S.animatedItems.push(spinner);
+  }
   if (def.spotlight) {
     // Small hidden spotlight inside a display cover, aimed at the product
     const s = def.spotlight;
@@ -123,12 +138,15 @@ function buildModelItem(def) {
       const mat = makeHologramMaterial(def.hologram);
       for (const m of roles.holo) m.material = mat;
     }
-    if (def.spin) S.animatedItems.push(...(roles.spin ?? []));
     if (def.envmap && S.cubeRT) {
       for (const m of roles.envmap ?? []) { m.material.envMap = S.cubeRT.texture; m.material.envMapIntensity = 1.5; m.material.needsUpdate = true; }
     }
+    const n = (name) => model.getObjectByName(name);
+    if (def.tv) {
+      root.userData.tvParts = { base: n('tv_base'), pole: n('tv_pole'), head: n('tv_head') };
+      updateTV(root);
+    }
     if (def.arm) {
-      const n = (name) => model.getObjectByName(name);
       root.userData.joints = { swivel: n('arm_swivel'), seg1: n('arm_seg1'), seg2: n('arm_seg2'), head: n('arm_head') };
       updateArm(root);
     }
@@ -200,6 +218,30 @@ export function updateArm(group) {
   }
   const headY = ARM.POLE_H + ARM.L1 * Math.sin(r(arm.a1)) + ARM.L2 * Math.sin(r(arm.a2));
   group.userData.h = headY + group.userData.screenH / 2;
+}
+
+// --- Standing TV size + height on the shared model ---
+export const TV_SIZES = [32, 40, 43, 50, 55, 65, 75, 85];   // common screen sizes, inches (an item's own size is kept)
+export const TV_HEIGHT = [1.0, 2.4];                         // top edge, m
+// Minimum top-edge height for a screen size: screen height + 0.3 m under it
+export function tvMinHeight(group) {
+  const M = group.userData.tvMeta;
+  return Math.ceil((M.refH * group.userData.tv.diag / M.refDiagIn + 0.3) * 20) / 20;   // whole 50 mm steps
+}
+export function updateTV(group) {
+  const tv = group.userData.tv, M = group.userData.tvMeta, P = group.userData.tvParts;
+  tv.diag = THREE.MathUtils.clamp(+tv.diag || M.refDiagIn, 24, 100);
+  tv.height = THREE.MathUtils.clamp(+tv.height || M.h, Math.max(TV_HEIGHT[0], tvMinHeight(group)), TV_HEIGHT[1]);
+  const k = tv.diag / M.refDiagIn, tvW = M.refW * k, tvH = M.refH * k;
+  const baseW = Math.max(M.baseW, tvW * 0.45);
+  if (P?.head) {
+    P.head.scale.set(k, k, 1);
+    P.head.position.y = tv.height - tvH / 2;
+    P.pole.scale.y = tv.height - M.baseT;
+    P.base.scale.x = baseW / M.baseW;
+  }
+  group.userData.w = Math.max(tvW, baseW);
+  group.userData.h = tv.height;
 }
 
 // --- Barrier poles (children of their owner item, e.g. the 3D fan) + red belts ---

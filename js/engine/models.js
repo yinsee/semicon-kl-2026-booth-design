@@ -1,7 +1,7 @@
 // Shared furniture models: assets/models/<name>.glb + manifest.json (footprint per model).
 // Each GLB loads once; every item gets its own clone (geometry + materials shared).
 // Tags written by tools/models/factories.js come back as userData:
-//   role ('screen', 'screen0'.., 'print', 'holo', 'spin', 'envmap'), noPick, noShadow.
+//   role ('screen', 'screen0'.., 'print', 'holo', 'envmap'), noPick, noShadow.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { C } from './core.js';

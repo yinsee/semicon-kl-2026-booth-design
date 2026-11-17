@@ -12,7 +12,6 @@
 //   role: 'screen' | 'screen0'..'screen2'  → page assigns its swappable screen material
 //   role: 'print'                          → page assigns its swappable graphic material
 //   role: 'holo'                           → page rebuilds the additive hologram (video) material
-//   role: 'spin'                           → page pushes it into animatedItems
 //   role: 'envmap'                         → page binds the live CubeCamera reflection
 //   noPick: true                           → raycasts pass through (glass / overlay / lines)
 //   noShadow: true                         → does not cast a shadow
@@ -66,27 +65,38 @@ function addTube(group, a, b, r, mat) {
 // From japan2026.html
 // ============================================================================================
 
-// Standing TV on a floor stand; screen faces +Z.
-export function standingTV({ diagIn = 42, totalH = 1.35, aspect = 16 / 9 } = {}) {
-  const diag = diagIn * 0.0254;
+// Standing TV on a floor stand; screen faces +Z. One model for every size: it is built at the
+// reference size (42", top edge 1.35 m) with named parts the page scales per item:
+//   tv_base (scale.x widens it), tv_pole (unit height, scale.y = top − base), tv_head (frame + screen,
+//   origin at the screen centre; scale x/y = diagonal / 42").
+export const TV = { refDiagIn: 42, refTopY: 1.35, aspect: 16 / 9, baseW: 0.6, baseD: 0.4, baseT: 0.03, poleZ: -0.12 };
+export function standingTV() {
+  const { refDiagIn, refTopY, aspect, baseW, baseD, baseT, poleZ } = TV;
+  const diag = refDiagIn * 0.0254;
   const tvW = diag * aspect / Math.hypot(aspect, 1);
   const tvH = diag / Math.hypot(aspect, 1);
-  const baseW = Math.max(0.6, tvW * 0.45), baseD = 0.4, baseT = 0.03;
-  const tvCenterY = totalH - tvH / 2;
   const group = new THREE.Group();
   const frameMat = std({ color: 0x0f0f10, roughness: 0.4, metalness: 0.5 });
   const baseMat = std({ color: 0x1a1a1d, roughness: 0.5, metalness: 0.6 });
 
   const base = new THREE.Mesh(new THREE.BoxGeometry(baseW, baseT, baseD), baseMat);
+  base.name = 'tv_base';
   base.position.set(0, baseT / 2, 0);
-  const pole = new THREE.Mesh(new THREE.BoxGeometry(0.09, totalH - baseT, 0.09), frameMat);
-  pole.position.set(0, baseT + (totalH - baseT) / 2, -0.12);
+  const pole = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1, 0.09).translate(0, 0.5, 0), frameMat);
+  pole.name = 'tv_pole';
+  pole.position.set(0, baseT, poleZ);
+  pole.scale.y = refTopY - baseT;
+  const head = new THREE.Object3D();
+  head.name = 'tv_head';
+  head.position.set(0, refTopY - tvH / 2, 0);
   const frame = new THREE.Mesh(new THREE.BoxGeometry(tvW + 0.04, tvH + 0.04, 0.06), frameMat);
-  frame.position.set(0, tvCenterY, -0.04);
-  const screen = tag(new THREE.Mesh(new THREE.BoxGeometry(tvW, tvH, 0.015), placeholder('screen')), { role: 'screen', noShadow: true });
-  screen.position.set(0, tvCenterY, -0.002);
-  group.add(base, pole, frame, screen);
-  return { object: group, meta: { w: Math.max(tvW, baseW), d: baseD, h: totalH } };
+  frame.position.z = -0.04;
+  // Screen = front-only plane (a box would show the picture on its back face too)
+  const screen = tag(new THREE.Mesh(new THREE.PlaneGeometry(tvW, tvH), placeholder('screen')), { role: 'screen', noShadow: true });
+  screen.position.z = -0.04 + 0.03 + 0.0005;
+  head.add(frame, screen);
+  group.add(base, pole, head);
+  return { object: group, meta: { w: Math.max(tvW, baseW), d: baseD, h: refTopY, refDiagIn, refW: tvW, refH: tvH, baseW, baseT } };
 }
 
 // 3D hologram fan display: 2×3 fans on a frame on a base plate, operator hologram planes.
@@ -602,7 +612,7 @@ export function facadeBox({ w = 0.91, d = 0.3048, h = 0.615, facadeH = 0, facade
 }
 
 // Control console: curved "Virtual Operator with Ai" banner on 2 poles. Its 3 TVs are separate items
-// (postTV below) placed on an arc around the operator spot (origin z − 0.65).
+// (standing TVs) placed on an arc around the operator spot (origin z − 0.65).
 export const CONSOLE = { D: 2.4, opZ: -2.4 / 2 + 0.55, R_mon: 1.43, tvAngles: [-40, 0, 40] };
 function consoleBannerCanvas(mirrored) {
   const [c, g] = makeCanvas(2048, 256);
@@ -618,20 +628,6 @@ function consoleBannerCanvas(mirrored) {
   g.textBaseline = 'middle';
   g.fillText('VIRTUAL OPERATOR WITH Ai', c.width / 2, c.height / 2);
   return c;
-}
-// 43" TV (landscape) on a square support post behind it; screen (role 'screen') faces +Z.
-export function postTV({ mW = 0.952, mH = 0.536, centerY = 1.54, postBack = 0.12 } = {}) {
-  const group = new THREE.Group();
-  const frameMat = std({ color: 0x1a1c1f, roughness: 0.4, metalness: 0.7 });
-  const screen = tag(new THREE.Mesh(new THREE.BoxGeometry(mW, mH, 0.025), placeholder('screen')), { role: 'screen' });
-  screen.position.y = centerY;
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(mW + 0.04, mH + 0.04, 0.02), frameMat);
-  frame.position.set(0, centerY, -0.005);
-  const postH = centerY + mH / 2;
-  const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, postH, 0.08), frameMat);
-  post.position.set(0, postH / 2, -postBack);
-  group.add(screen, frame, post);
-  return { object: group, meta: { w: +(mW + 0.04).toFixed(3), d: 0.2, h: +(centerY + mH / 2 + 0.02).toFixed(3) } };
 }
 export function consoleWall() {
   const W = 2.6, D = CONSOLE.D, H = 2.2;
@@ -669,7 +665,8 @@ export function pc({ deskTop = 0 } = {}) {
   const mon = new THREE.Group();
   const bezel = new THREE.Mesh(new THREE.BoxGeometry(oW + 0.03, oH + 0.03, 0.018), frameMat);
   bezel.position.z = -0.003;
-  const screen = tag(new THREE.Mesh(new THREE.BoxGeometry(oW, oH, 0.02), placeholder('screen')), { role: 'screen' });
+  const screen = tag(new THREE.Mesh(new THREE.PlaneGeometry(oW, oH), placeholder('screen')), { role: 'screen' });
+  screen.position.z = -0.003 + 0.009 + 0.0005;   // front-only plane on the bezel's front
   mon.add(bezel, screen);
   mon.position.set(0, deskTop + oH / 2 + 0.10, -0.09);
   mon.rotation.x = 0.12;
@@ -681,8 +678,8 @@ export function pc({ deskTop = 0 } = {}) {
   return { object: group, meta: { w: 0.5, d: 0.35, h: +(deskTop + 0.10 + oH + 0.015).toFixed(3) } };
 }
 
-// Display plinth (UNYSIS / BIOENERGY lettering) with a glass cover and a spinning product box.
-// The page adds the small spotlight inside the cover (lights are not exported).
+// Display plinth (UNYSIS / BIOENERGY lettering) with a glass cover. The project adds the product
+// inside (item `turntable`) and the small spotlight (lights are not exported).
 function plinthLettersCanvas(letters, size) {
   const [c, g] = makeCanvas(256, 768);
   g.fillStyle = '#0a1a3a';
@@ -695,9 +692,9 @@ function plinthLettersCanvas(letters, size) {
   letters.forEach((ch, i) => g.fillText(ch, c.width / 2, step * (i + 1)));
   return c;
 }
-export const DISPLAY_BOX = { baseH: 0.90, coverH: 0.30, itemH: 0.08 };
+export const DISPLAY_BOX = { baseH: 0.90, coverH: 0.30 };
 export function displayBox() {
-  const W = 0.30, D = 0.30, { baseH, coverH, itemH } = DISPLAY_BOX;
+  const W = 0.30, D = 0.30, { baseH, coverH } = DISPLAY_BOX;
   const group = new THREE.Group();
   const sideMat = std({ map: canvasTex(plinthLettersCanvas([...'UNYSIS'], 120)), roughness: 0.7 });
   const frontMat = std({ map: canvasTex(plinthLettersCanvas([...'BIOENERGY'], 84)), roughness: 0.7 });
@@ -711,9 +708,7 @@ export function displayBox() {
   const edges = tag(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(W, coverH, D)),
     new THREE.LineBasicMaterial({ color: 0xbfd3e0 })), { noPick: true });
   edges.position.y = baseH + coverH / 2;
-  const item = tag(new THREE.Mesh(new THREE.BoxGeometry(0.13, itemH, 0.09), std({ color: 0x0f0f10, roughness: 0.5, metalness: 0.25 })), { role: 'spin' });
-  item.position.set(0, baseH + itemH / 2, 0);
-  group.add(base, cover, edges, item);
+  group.add(base, cover, edges);   // the product on show is added by the project (item `turntable`)
   return { object: group, meta: { w: W, d: D, h: baseH + coverH } };
 }
 
@@ -761,9 +756,7 @@ export function human() {
 // ============================================================================================
 export const VARIANTS = {
   // japan2026.html (also used by index.html where noted)
-  'tv-42':                () => standingTV({ diagIn: 42, totalH: 1.35 }),
-  'tv-55':                () => standingTV({ diagIn: 55, totalH: 1.6 }),
-  'tv-60':                () => standingTV({ diagIn: 60, totalH: 1.6 }),          // index tv-1
+  'standing-tv':          () => standingTV(),                                     // all TVs; size + height per item
   'hologram-fan':         () => hologramFan(),                                    // japan fan-1, index case-1
   'counter':              () => counter({ w: 0.9, h: 0.8, d: 0.45 }),
   'framed-banner':        () => framedBanner({ w: 2.6, h: 2.5 }),
@@ -780,7 +773,6 @@ export const VARIANTS = {
   'facade-box':           () => facadeBox({ w: 0.91, d: 0.3048, h: 0.615, facadeH: 1.2 }),
   'white-box':            () => facadeBox({ w: 0.6, d: 0.6, h: 0.74 }),
   'console':              () => consoleWall(),
-  'tv-43-post':           () => postTV(),
   'pc':                   () => pc(),
   'display-box':          () => displayBox(),
   'human':                () => human(),

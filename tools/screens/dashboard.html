@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Equipment dashboard</title>
+<style>
+  html, body { margin: 0; background: #0b0c0f; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<!-- Animated wafer-saw dashboard (based on assets/screens/3.jpg). Every value is a periodic function of
+     t with period LOOP, so frame LOOP joins frame 0 seamlessly. Preview: open in a browser.
+     Video: python3 tools/screens/render_dashboard.py (calls window.drawAt(t) per frame). -->
+<canvas id="c" width="1280" height="720"></canvas>
+<script>
+const LOOP = 10;                       // seconds
+const W = 1280, H = 720;
+const c = document.getElementById('c'), g = c.getContext('2d');
+const TAU = Math.PI * 2;
+const wave = (t, k = 1, ph = 0) => Math.sin(TAU * (k * t / LOOP) + ph);   // k = whole cycles per loop
+const C = { bg: '#0b0c0f', panel: '#16181d', line: '#262a31', text: '#d8d9da', muted: '#8e8e8e',
+  red: '#f2495c', yellow: '#fade2a', green: '#73bf69', purple: '#8f3bb8', blue: '#3274d9', orange: '#ff9830' };
+const FONT = 'Inter, "Helvetica Neue", Arial, sans-serif';
+
+function panel(x, y, w, h, title) {
+  g.fillStyle = C.panel; g.fillRect(x, y, w, h);
+  g.strokeStyle = C.line; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  g.fillStyle = C.text; g.font = `600 13px ${FONT}`; g.textAlign = 'left'; g.textBaseline = 'top';
+  g.fillText(title, x + 10, y + 8);
+}
+function text(s, x, y, size, color, weight = 500, align = 'left', base = 'alphabetic') {
+  g.fillStyle = color; g.font = `${weight} ${size}px ${FONT}`; g.textAlign = align; g.textBaseline = base; g.fillText(s, x, y);
+}
+function gauge(x, y, w, h, value, max, unit, color, t) {
+  const cx = x + w / 2, cy = y + h * 0.78, r = Math.min(w, h * 1.4) * 0.36;
+  g.lineWidth = 16; g.lineCap = 'butt';
+  g.strokeStyle = '#2a2d33'; g.beginPath(); g.arc(cx, cy, r, Math.PI, 0); g.stroke();
+  // threshold band (green → yellow → red)
+  const band = [[0, 0.5, C.green], [0.5, 0.75, C.yellow], [0.75, 1, C.red]];
+  g.lineWidth = 4;
+  for (const [a, b, col] of band) { g.strokeStyle = col; g.beginPath(); g.arc(cx, cy, r + 13, Math.PI + a * Math.PI, Math.PI + b * Math.PI); g.stroke(); }
+  g.lineWidth = 16; g.strokeStyle = color;
+  g.beginPath(); g.arc(cx, cy, r, Math.PI, Math.PI + Math.PI * Math.min(1, value / max)); g.stroke();
+  text(`${value.toFixed(unit === 's' ? 0 : 2)} ${unit}`, cx, cy - 6, 34, color, 700, 'center');
+  text('0', cx - r - 4, cy - r * 0.95, 11, C.muted, 500, 'center');
+  text(String(max), cx + r + 4, cy - r * 0.95, 11, C.muted, 500, 'center');
+}
+function sparkArea(x, y, w, h, t, color) {
+  g.beginPath(); g.moveTo(x, y + h);
+  for (let i = 0; i <= 40; i++) {
+    const u = i / 40;
+    const v = 0.55 + 0.25 * Math.sin(u * 9 + TAU * t / LOOP) + 0.12 * Math.sin(u * 23 - TAU * 2 * t / LOOP);
+    g.lineTo(x + u * w, y + h - v * h);
+  }
+  g.lineTo(x + w, y + h); g.closePath();
+  g.fillStyle = color + '55'; g.fill();
+  g.strokeStyle = color; g.lineWidth = 2; g.stroke();
+}
+function hbars(x, y, w, h, t, labels, base, color, axisMax, phase) {
+  const rowH = h / labels.length;
+  labels.forEach((lab, i) => {
+    const v = base[i] * (1 + 0.12 * wave(t, 1, i * 0.9 + phase));
+    const by = y + i * rowH + rowH * 0.18;
+    text(lab, x + 70, by + rowH * 0.5, 10, C.muted, 500, 'right', 'middle');
+    g.fillStyle = color; g.fillRect(x + 76, by, (w - 88) * v / axisMax, rowH * 0.62);
+  });
+}
+// Per person: resolve time (green) above response time (yellow), with a legend
+function pairBars(x, y, w, h, t, names, resolve, response, axisMax, phase) {
+  const rowH = (h - 18) / names.length, labelW = 104, barW = w - labelW - 16;
+  names.forEach((name, i) => {
+    const ry = y + i * rowH;
+    text(name, x + labelW - 6, ry + rowH * 0.5, 11, C.muted, 500, 'right', 'middle');
+    const a = resolve[i] * (1 + 0.12 * wave(t, 1, i * 0.9 + phase));
+    const b = response[i] * (1 + 0.15 * wave(t, 1, i * 1.4 + phase + 1));
+    g.fillStyle = C.green; g.fillRect(x + labelW, ry + rowH * 0.12, barW * a / axisMax, rowH * 0.36);
+    g.fillStyle = C.yellow; g.fillRect(x + labelW, ry + rowH * 0.52, barW * b / axisMax, rowH * 0.36);
+  });
+  const ly = y + h - 6;
+  g.fillStyle = C.green; g.fillRect(x + labelW, ly - 8, 10, 10); text('Resolve', x + labelW + 14, ly, 11, C.muted);
+  g.fillStyle = C.yellow; g.fillRect(x + labelW + 80, ly - 8, 10, 10); text('Response', x + labelW + 94, ly, 11, C.muted);
+}
+function lineChart(x, y, w, h, t, series, colors, ymax) {
+  g.strokeStyle = C.line; g.lineWidth = 1;
+  for (let k = 0; k <= 4; k++) { const yy = y + h - k * h / 4; g.beginPath(); g.moveTo(x, yy); g.lineTo(x + w, yy); g.stroke(); }
+  series.forEach((pts, si) => {
+    g.strokeStyle = colors[si % colors.length]; g.lineWidth = 2; g.beginPath();
+    pts.forEach((p, i) => {
+      const v = p * (1 + 0.15 * wave(t, 1, i * 1.3 + si));
+      const px = x + i * w / (pts.length - 1), py = y + h - Math.min(1, v / ymax) * h;
+      i ? g.lineTo(px, py) : g.moveTo(px, py);
+    });
+    g.stroke();
+    if (series.length === 1) pts.forEach((p, i) => {
+      const v = p * (1 + 0.15 * wave(t, 1, i * 1.3 + si));
+      g.fillStyle = colors[0]; g.beginPath(); g.arc(x + i * w / (pts.length - 1), y + h - Math.min(1, v / ymax) * h, 4, 0, TAU); g.fill();
+    });
+  });
+}
+const SAWS = Array.from({ length: 23 }, (_, i) => `W-SAW-${String(i + 1).padStart(2, '0')}`);
+const YELLOW_BASE = new Set([0, 4, 6, 9, 10, 13, 20, 22]);
+
+window.drawAt = function drawAt(t) {
+  t = ((t % LOOP) + LOOP) % LOOP;
+  g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+  // Title bar
+  g.fillStyle = C.blue; g.fillRect(0, 0, W, 34);
+  text('Equipment Performance - ZONE B (WAFER SAW)', W / 2, 24, 20, '#ffffff', 600, 'center');
+
+  const col = [6, 322, 638, 954], cw = 320, row = [40, 268, 498], rh = [222, 224, 216];
+  // Row 1
+  panel(col[0], row[0], cw - 6, rh[0], 'Incident Count Trend (Last 7 days)');
+  text('Total', col[0] + 12, row[0] + 46, 13, C.muted);
+  text(String(7815 + Math.round(6 * wave(t, 1))), col[0] + 12, row[0] + 98, 46, C.red, 700);
+  sparkArea(col[0] + 150, row[0] + 46, 150, 60, t, C.red);
+  text('Per Machine', col[0] + 12, row[0] + 140, 13, C.muted);
+  text(String(391 + Math.round(2 * wave(t, 1, 1))), col[0] + 12, row[0] + 196, 46, C.yellow, 700);
+  sparkArea(col[0] + 150, row[0] + 140, 150, 60, t + 2.5, C.yellow);
+
+  panel(col[1], row[0], cw - 6, rh[0], 'Total Downtime (Last 7 days)');
+  text('Avg Per Machine Per Day', col[1] + cw / 2 - 3, row[0] + 80, 17, C.text, 500, 'center');
+  text(`${(1.36 + 0.02 * wave(t, 1, 2)).toFixed(2)} hour`, col[1] + cw / 2 - 3, row[0] + 150, 48, C.red, 700, 'center');
+
+  panel(col[2], row[0], cw - 6, rh[0], 'Response Time (Last 7 days) - Target 30s');
+  gauge(col[2], row[0] + 20, cw - 6, rh[0] - 20, 43 + 4 * wave(t, 1), 60, 's', C.red, t);
+  panel(col[3], row[0], cw - 6, rh[0], 'Resolve Time (Last 7 days) - Target 1min');
+  gauge(col[3], row[0] + 20, cw - 6, rh[0] - 20, 1.34 + 0.08 * wave(t, 1, 1.5), 2, 'min', C.yellow, t);
+
+  // Row 2: machine status tiles
+  panel(col[0], row[1], cw - 6, rh[1], 'Machine Status');
+  SAWS.forEach((name, i) => {
+    const cx = col[0] + 12 + (i % 3) * 100, cy = row[1] + 32 + Math.floor(i / 3) * 23.5;
+    // a few tiles change state during the loop (each flips for one 2.5 s step)
+    const step = Math.floor(t / 2.5);
+    const flip = (i * 7 + step * 5) % 23 < 2;
+    const yellow = YELLOW_BASE.has(i) !== flip;
+    g.fillStyle = yellow ? '#e0b400' : '#56a64b'; g.fillRect(cx, cy, 92, 19);
+    text(name, cx + 46, cy + 10, 11, '#111', 700, 'center', 'middle');
+  });
+  const machines = ['W-SAW-14', 'W-SAW-18', 'W-SAW-13', 'W-SAW-12', 'W-SAW-21', 'W-SAW-16', 'W-SAW-17', 'W-SAW-20', 'W-SAW-15'];
+  panel(col[1], row[1], cw - 6, rh[1], 'Top Incident Machines (Current Shift)');
+  hbars(col[1], row[1] + 30, cw - 6, rh[1] - 50, t, machines, [34, 29, 26, 23, 21, 19, 17, 15, 13], C.purple, 38, 0);
+  panel(col[2], row[1], cw - 6, rh[1], 'Top Incident Machines (Previous Shift)');
+  hbars(col[2], row[1] + 30, cw - 6, rh[1] - 50, t, machines, [31, 27, 25, 24, 20, 18, 16, 14, 12], C.purple, 38, 2);
+  panel(col[3], row[1], cw - 6, rh[1], 'Incident Count (Last 7 Days)');
+  lineChart(col[3] + 40, row[1] + 40, cw - 70, rh[1] - 75, t, [[1100, 1200, 1000, 1250, 1300, 700, 300]], [C.green], 1500);
+  ['06/06', '06/08', '06/10', '06/12'].forEach((d, i) => text(d, col[3] + 40 + i * (cw - 70) / 3, row[1] + rh[1] - 14, 10, C.muted, 500, 'center'));
+
+  // Row 3
+  const people = ['Nina#334564', 'Muhaziq#358035', 'Atikah#340459', 'Aina#350268'];
+  panel(col[0], row[2], cw - 6, rh[2], 'Response & Resolve Time (Current Shift)');
+  pairBars(col[0], row[2] + 32, cw - 6, rh[2] - 40, t, people.slice(0, 2), [45, 39], [22, 15], 50, 0.5);
+  panel(col[1], row[2], cw - 6, rh[2], 'Response & Resolve Time (Previous Shift)');
+  pairBars(col[1], row[2] + 32, cw - 6, rh[2] - 40, t, people, [24, 36, 30, 27], [12, 18, 9, 14], 50, 2.5);
+  panel(col[2] , row[2], cw * 2 - 6, rh[2], 'W-SAW MACHINE UTILIZATION');
+  const util = Array.from({ length: 6 }, (_, s) => Array.from({ length: 12 }, (_, i) => 55 + 30 * Math.sin(i * 0.9 + s * 1.7) + 10 * Math.cos(i * 2.3 + s)));
+  lineChart(col[2] + 40, row[2] + 36, cw * 2 - 80, rh[2] - 70, t, util, [C.green, C.yellow, C.blue, C.orange, C.red, C.purple], 100);
+  ['W-SAW-01', 'W-SAW-02', 'W-SAW-03', 'W-SAW-04', 'W-SAW-05', 'W-SAW-06'].forEach((n, i) => {
+    const lx = col[2] + 40 + i * 100, ly = row[2] + rh[2] - 14;
+    g.fillStyle = [C.green, C.yellow, C.blue, C.orange, C.red, C.purple][i]; g.fillRect(lx, ly - 7, 14, 3);
+    text(n, lx + 18, ly - 2, 10, C.muted);
+  });
+};
+
+// Live preview when opened directly
+if (!new URLSearchParams(location.search).has('render')) {
+  const start = performance.now();
+  (function loop() { drawAt((performance.now() - start) / 1000); requestAnimationFrame(loop); })();
+} else {
+  drawAt(0);
+}
+</script>
+</body>
+</html>

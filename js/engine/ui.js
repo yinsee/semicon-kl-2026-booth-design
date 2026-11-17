@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { C, LOOK_RADIUS, setControlMode, toggleIsoCamera } from './core.js';
 import { S } from './state.js';
-import { ARM_LIMITS, updateArm, findItem, barrierOwner, setBarrierCount, setBarrierLoop } from './items.js';
+import { ARM_LIMITS, updateArm, findItem, barrierOwner, setBarrierCount, setBarrierLoop, TV_SIZES, TV_HEIGHT, tvMinHeight, updateTV } from './items.js';
 import { saveLayout, undo, clearLayout } from './layout.js';
 import { setScreenEntry, setGraphic } from './media.js';
 
@@ -41,7 +41,11 @@ const UNLOCK_ICON = svgIcon('<rect x="5" y="11" width="14" height="10" rx="2"/><
 const EYE_ICON     = svgIcon('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>');
 const EYE_OFF_ICON = svgIcon('<path d="M2 12s3.5-7 10-7c2 0 3.8.7 5.2 1.6M22 12s-3.5 7-10 7c-2 0-3.8-.7-5.2-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>');
 function itemIcon(id) { return ICONS[id === 'booth' ? 'booth' : S.icons.get(id)] ?? DEFAULT_ICON; }
-function itemName(obj) { return obj.userData.isBooth ? 'Booth shell' : (S.names.get(obj.userData.id) ?? obj.userData.id); }
+function itemName(obj) {
+  if (obj.userData.isBooth) return 'Booth shell';
+  const name = S.names.get(obj.userData.id) ?? obj.userData.id;
+  return obj.userData.tv ? `${obj.userData.tv.diag}" ${name}` : name;   // TVs: current size in front
+}
 
 // ---------------- Properties pane ----------------
 export function showInfo(obj) {
@@ -78,6 +82,7 @@ export function showInfo(obj) {
       inp.value = obj.userData.arm[inp.dataset.arm];
       inp.nextElementSibling.textContent = `${inp.value}°`;
     });
+    infoEl.querySelectorAll('[data-tv]').forEach(el => { el.disabled = !!obj.userData.locked; });
     return;
   }
   S.infoObj = obj;
@@ -101,6 +106,30 @@ export function showInfo(obj) {
       inp.onchange = () => saveLayout();
       infoEl.append(row);
     }
+  }
+  if (obj.userData.tv) {
+    // Standing TV: screen size + top-edge height (same model, parts scaled)
+    const tv = obj.userData.tv;
+    const size = document.createElement('select');
+    size.title = 'Screen size';
+    size.dataset.tv = 'diag';
+    for (const d of [...new Set([...TV_SIZES, tv.diag])].sort((a, b) => a - b)) size.add(new Option(`${d}"`, d));
+    size.value = tv.diag;
+    size.onchange = () => { tv.diag = +size.value; updateTV(obj); saveLayout(); buildItemList(); S.infoObj = null; showInfo(obj); }; // rebuild: name + height range change
+    infoEl.append(labelRow('Screen size'), size);
+    const row = document.createElement('div');
+    row.className = 'row arm';
+    row.innerHTML = `<span>Height</span><input type="range" step="0.05" data-tv="height"><span class="val"></span>`;
+    const inp = row.querySelector('input'), val = row.querySelector('.val');
+    const sync = () => {
+      inp.min = Math.max(TV_HEIGHT[0], tvMinHeight(obj)); inp.max = TV_HEIGHT[1];
+      inp.value = tv.height; val.textContent = `${mm(tv.height)}`;
+    };
+    sync();
+    inp.oninput = () => { tv.height = +inp.value; updateTV(obj); sync(); showInfo(obj); };
+    inp.onchange = () => saveLayout();
+    infoEl.append(row);
+    size.disabled = inp.disabled = !!obj.userData.locked;
   }
   if (obj.userData.graphicSources) {
     const sel = document.createElement('select');

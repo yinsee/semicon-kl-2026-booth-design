@@ -53,18 +53,20 @@ hemi, sun) · `floor` (carpet style `mid-grey` | `charcoal`, tint, bump) · `wal
 `groups` (Items pane sections; may include "booth" to share the booth shell section) · `items[]` · `defaultLayout` (used when localStorage is empty / after Reset).
 
 Item fields: `id`, `name`, `icon` (key in `ICONS`, ui.js), `model`, `at {x,z,ry}`, `parent`, `light`, `wall`,
-`graphic`, `screen` / `screens[]`, `arm`, `hologram`, `spin`, `spotlight`, `envmap`, `barrier` (poles that belong
+`graphic`, `screen` / `screens[]`, `arm`, `tv` (size + height on the shared standing-tv model), `hologram`,
+`turntable`, `spotlight`, `envmap`, `free` (with `parent`: floor child), `barrier` (poles that belong
 to the item, move with it, drag freely, count min..max, joined by belts) — see items.js header.
-Saved layout per item: `{ x, y, z, ry }` + `screen` / `screens`, `local`, `arm`, `locked`, `hidden`, `graphic`, `barrier`.
+Saved layout per item: `{ x, y, z, ry }` + `screen` / `screens`, `local`, `arm`, `tv`, `locked`, `hidden`, `graphic`, `barrier`, `barrierLoop`.
 
 ### Assets
-`assets/screens/` (screen + hologram media) · `assets/posters/` · `assets/backdrops/` (banner prints + wall
+`assets/screens/` (screen + hologram media; videos ≤ 2 MB, H.264, no audio; `dashboard.mp4` is rendered
+from `tools/screens/dashboard.html` by `tools/screens/render_dashboard.py`) · `assets/posters/` · `assets/backdrops/` (banner prints + wall
 backdrops) · `assets/models/` · `assets/thumbs/` (menu cards). Project JSON refers to them by path.
 
 ### Models (`assets/models/`)
 Furniture geometry lives only in `tools/models/factories.js` (pure builders → `VARIANTS`). Parts the page
 drives at runtime are tagged in `userData` (exported as glTF extras): `role` = `screen` / `screen0..n` /
-`print` / `holo` / `spin` / `envmap`, plus `noPick`, `noShadow`; monitor-arm joints are named
+`print` / `holo` / `envmap`, plus `noPick`, `noShadow`; monitor-arm joints are named
 `arm_swivel / arm_seg1 / arm_seg2 / arm_head`. `python3 tools/models/build.py` (Playwright + Chrome, via
 `save_server.py` PUT endpoint) writes `<name>.glb` and `manifest.json` (`{ w, d, h, … }` footprint per
 model; entries not in `VARIANTS`, e.g. `unysis9r` from CAD, are kept). Model origin: floor level, centred,

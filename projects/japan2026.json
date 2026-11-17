@@ -178,24 +178,28 @@
   },
   "screenSources": {
     "display": {
-      "label": "Display video",
+      "label": "Display reel",
       "video": "assets/screens/display.mp4"
     },
     "saw": {
-      "label": "Wafer saw video",
+      "label": "Wafer saw",
       "video": "assets/screens/saw.mp4"
     },
-    "img6": {
-      "label": "Dashboard image (6.jpeg)",
-      "image": "assets/screens/6.jpeg"
+    "osat": {
+      "label": "Digital twin",
+      "video": "assets/screens/osat-twin.mp4"
     },
-    "img3": {
-      "label": "Screen image (3.jpg)",
-      "image": "assets/screens/3.jpg"
+    "unysis9": {
+      "label": "UNYSIS 9 story",
+      "video": "assets/screens/unysis9-story.mp4"
     },
-    "twin": {
-      "label": "UNYSIS digital twin",
-      "image": "assets/screens/digitaltwin.jpg"
+    "dash": {
+      "label": "Equipment dashboard",
+      "video": "assets/screens/dashboard.mp4"
+    },
+    "err224": {
+      "label": "Error #224 resolution",
+      "video": "assets/screens/error-224.mp4"
     }
   },
   "graphicSources": {
@@ -629,7 +633,7 @@
       },
       "graphic": {
         "sources": "banners",
-        "default": "original",
+        "default": "B04",
         "roughness": 0.8
       }
     },
@@ -671,7 +675,7 @@
         "a2": -10
       },
       "screen": {
-        "default": "img6",
+        "default": "saw",
         "intensity": 0.45,
         "roughness": 0.25
       }
@@ -743,35 +747,43 @@
     },
     {
       "id": "tv-1",
-      "name": "42\" TV with stand (1)",
+      "name": "TV with stand 1",
       "icon": "tv",
-      "model": "tv-42",
+      "model": "standing-tv",
       "at": {
         "x": 0.8,
         "z": 0.4
       },
       "screen": {
         "default": "display"
+      },
+      "tv": {
+        "diag": 42,
+        "height": 1.35
       }
     },
     {
       "id": "tv-2",
-      "name": "55\" TV with stand (2)",
+      "name": "TV with stand 2",
       "icon": "tv",
-      "model": "tv-55",
+      "model": "standing-tv",
       "at": {
         "x": 2.2,
         "z": 0.4
       },
       "screen": {
         "default": "display"
+      },
+      "tv": {
+        "diag": 55,
+        "height": 1.6
       }
     },
     {
       "id": "tv-3",
-      "name": "42\" TV with stand (3)",
+      "name": "TV with stand 3",
       "icon": "tv",
-      "model": "tv-42",
+      "model": "standing-tv",
       "at": {
         "x": 2.6,
         "z": 1.8,
@@ -779,6 +791,10 @@
       },
       "screen": {
         "default": "display"
+      },
+      "tv": {
+        "diag": 42,
+        "height": 1.35
       }
     }
   ],
@@ -817,22 +833,8 @@
       "z": 1.3,
       "ry": 0,
       "locked": true,
-      "barrier": 2
-    },
-    "counter-1": {
-      "x": 0.6,
-      "y": 0,
-      "z": 2.7,
-      "ry": 0,
-      "locked": true
-    },
-    "banner-1": {
-      "x": 1.5,
-      "y": 0,
-      "z": 0.4,
-      "ry": 0,
-      "locked": true,
-      "graphic": "B01"
+      "barrier": 2,
+      "barrierLoop": false
     },
     "qp-1": {
       "x": -0.7,
@@ -849,6 +851,21 @@
       "ry": 0,
       "local": true,
       "locked": true
+    },
+    "counter-1": {
+      "x": 0.6,
+      "y": 0,
+      "z": 2.7,
+      "ry": 0,
+      "locked": true
+    },
+    "banner-1": {
+      "x": 1.5,
+      "y": 0,
+      "z": 0.4,
+      "ry": 0,
+      "locked": true,
+      "graphic": "B04"
     },
     "unisys-1": {
       "x": 0.35,
@@ -922,7 +939,11 @@
       "y": 0,
       "z": 1.1,
       "ry": -7.0686,
-      "screen": "display",
+      "screen": "osat",
+      "tv": {
+        "diag": 42,
+        "height": 1.35
+      },
       "locked": true
     },
     "tv-2": {
@@ -930,7 +951,11 @@
       "y": 0,
       "z": 0.7,
       "ry": 12.5664,
-      "screen": "twin",
+      "screen": "unysis9",
+      "tv": {
+        "diag": 55,
+        "height": 1.6
+      },
       "locked": true
     },
     "tv-3": {
@@ -938,7 +963,11 @@
       "y": 0,
       "z": 1.1,
       "ry": 1.0472,
-      "screen": "img3",
+      "screen": "dash",
+      "tv": {
+        "diag": 42,
+        "height": 1.35
+      },
       "locked": true
     }
   }

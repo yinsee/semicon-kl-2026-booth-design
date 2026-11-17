@@ -43,6 +43,7 @@ then visit <http://localhost:8000>.
 | `assets/backdrops/` | Backdrop banner graphics and wall backdrops |
 | `assets/concepts/index.html` | Contact sheet of the poster + backdrop concepts |
 | `tools/models/` | Model source (`factories.js`) and the GLB build (`build.py`) |
+| `tools/screens/` | Animated dashboard page + `render_dashboard.py` (writes `assets/screens/dashboard.mp4`) |
 
 To rebuild the GLB models after changing `tools/models/factories.js`:
 

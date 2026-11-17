@@ -201,31 +201,35 @@
   },
   "screenSources": {
     "display": {
-      "label": "Display video",
+      "label": "Display reel",
       "video": "assets/screens/display.mp4"
     },
     "saw": {
-      "label": "Wafer saw video",
+      "label": "Wafer saw",
       "video": "assets/screens/saw.mp4"
     },
-    "img6": {
-      "label": "Dashboard image (6.jpeg)",
-      "image": "assets/screens/6.jpeg"
+    "osat": {
+      "label": "Digital twin",
+      "video": "assets/screens/osat-twin.mp4"
     },
-    "img3": {
-      "label": "Screen image (3.jpg)",
-      "image": "assets/screens/3.jpg"
+    "unysis9": {
+      "label": "UNYSIS 9 story",
+      "video": "assets/screens/unysis9-story.mp4"
     },
-    "twin": {
-      "label": "UNYSIS digital twin",
-      "image": "assets/screens/digitaltwin.jpg"
+    "dash": {
+      "label": "Equipment dashboard",
+      "video": "assets/screens/dashboard.mp4"
+    },
+    "err224": {
+      "label": "Error #224 resolution",
+      "video": "assets/screens/error-224.mp4"
     },
     "img4": {
-      "label": "Portrait panel (4.jpeg)",
+      "label": "Portrait panel 1",
       "image": "assets/screens/4.jpeg"
     },
     "img5": {
-      "label": "Portrait panel (5.jpeg)",
+      "label": "Portrait panel 2",
       "image": "assets/screens/5.jpeg"
     }
   },
@@ -356,9 +360,9 @@
     },
     {
       "id": "console-tv-1",
-      "name": "43\" TV on post 1",
+      "name": "Console TV 1",
       "icon": "tv",
-      "model": "tv-43-post",
+      "model": "standing-tv",
       "parent": "console-1",
       "free": true,
       "at": {
@@ -370,13 +374,17 @@
         "default": "saw",
         "intensity": 0.5,
         "roughness": 0.22
+      },
+      "tv": {
+        "diag": 42,
+        "height": 1.35
       }
     },
     {
       "id": "console-tv-2",
-      "name": "43\" TV on post 2",
+      "name": "Console TV 2",
       "icon": "tv",
-      "model": "tv-43-post",
+      "model": "standing-tv",
       "parent": "console-1",
       "free": true,
       "at": {
@@ -385,16 +393,20 @@
         "ry": 3.1416
       },
       "screen": {
-        "default": "img6",
+        "default": "osat",
         "intensity": 0.45,
         "roughness": 0.25
+      },
+      "tv": {
+        "diag": 42,
+        "height": 1.35
       }
     },
     {
       "id": "console-tv-3",
-      "name": "43\" TV on post 3",
+      "name": "Console TV 3",
       "icon": "tv",
-      "model": "tv-43-post",
+      "model": "standing-tv",
       "parent": "console-1",
       "free": true,
       "at": {
@@ -403,9 +415,13 @@
         "ry": 3.8397
       },
       "screen": {
-        "default": "img3",
+        "default": "dash",
         "intensity": 0.45,
         "roughness": 0.25
+      },
+      "tv": {
+        "diag": 42,
+        "height": 1.35
       }
     },
     {
@@ -456,7 +472,7 @@
         "z": 0
       },
       "screen": {
-        "default": "img6",
+        "default": "dash",
         "intensity": 0.45,
         "roughness": 0.22
       },
@@ -472,7 +488,6 @@
         "z": 2.8,
         "ry": -2.618
       },
-      "spin": true,
       "spotlight": {
         "intensity": 6,
         "distance": 0.6,
@@ -480,7 +495,11 @@
         "penumbra": 0.4,
         "decay": 1.6,
         "y": 1.18,
-        "targetY": 0.94
+        "targetY": 0.945
+      },
+      "turntable": {
+        "model": "unysis9r",
+        "y": 0.9
       }
     },
     {
@@ -496,9 +515,9 @@
     },
     {
       "id": "tv-1",
-      "name": "60\" TV with stand",
+      "name": "TV with stand",
       "icon": "tv",
-      "model": "tv-60",
+      "model": "standing-tv",
       "at": {
         "x": 4.0,
         "z": 2.7,
@@ -506,6 +525,10 @@
       },
       "screen": {
         "default": "display"
+      },
+      "tv": {
+        "diag": 60,
+        "height": 1.6
       }
     },
     {
