@@ -5,15 +5,15 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { C } from './core.js';
+import { fetchJson, fetchRetry } from './net.js';
 
 const BASE = 'assets/models/';
-// Revalidate with the server on load (edited models / manifest show without a hard refresh)
-const loader = new GLTFLoader().setRequestHeader({ 'Cache-Control': 'no-cache' });
+const loader = new GLTFLoader();
 const cache = new Map();
 let manifest = null;
 
 export async function loadManifest() {
-  manifest ??= await fetch(BASE + 'manifest.json', { cache: 'no-cache' }).then(r => r.json());
+  manifest ??= await fetchJson(BASE + 'manifest.json');
   return manifest;
 }
 export function modelMeta(name) {
@@ -24,18 +24,24 @@ export function modelMeta(name) {
 
 function loadModel(name) {
   if (!cache.has(name)) {
-    cache.set(name, loader.loadAsync(`${BASE}${name}.glb`).then(gltf => {
-      const aniso = C.renderer.capabilities.getMaxAnisotropy();
-      gltf.scene.traverse(o => {
-        if (!o.isMesh) return;
-        o.castShadow = !o.userData.noShadow && !o.userData.noPick;
-        o.receiveShadow = true;
-        for (const m of [o.material].flat()) {
-          for (const k of ['map', 'emissiveMap']) if (m[k]) m[k].anisotropy = aniso;
-        }
+    // Revalidated with the server (edited models show after a normal reload); stalled requests retry
+    const scene = fetchRetry(`${BASE}${name}.glb`, { timeout: 20000 })
+      .then(res => res.arrayBuffer())
+      .then(buf => loader.parseAsync(buf, BASE))
+      .then(gltf => {
+        const aniso = C.renderer.capabilities.getMaxAnisotropy();
+        gltf.scene.traverse(o => {
+          if (!o.isMesh) return;
+          o.castShadow = !o.userData.noShadow && !o.userData.noPick;
+          o.receiveShadow = true;
+          for (const m of [o.material].flat()) {
+            for (const k of ['map', 'emissiveMap']) if (m[k]) m[k].anisotropy = aniso;
+          }
+        });
+        return gltf.scene;
       });
-      return gltf.scene;
-    }));
+    scene.catch(() => cache.delete(name));   // allow a later retry after a failed load
+    cache.set(name, scene);
   }
   return cache.get(name);
 }

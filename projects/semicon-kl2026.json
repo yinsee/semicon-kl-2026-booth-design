@@ -1,6 +1,6 @@
 {
   "meta": {
-    "id": "booth-6x3",
+    "id": "semicon-kl2026",
     "title": "Semicon KL 2026",
     "subtitle": "Booth design",
     "storageKey": "exhibition-booth-layout-v1"
@@ -64,7 +64,7 @@
       ],
       "color": "#2f5fa8",
       "faces": {
-        "+x": "assets/backdrop1.jpg"
+        "+x": "assets/backdrops/backdrop1.jpg"
       }
     },
     {
@@ -81,7 +81,7 @@
       ],
       "color": "#2f5fa8",
       "faces": {
-        "+z": "assets/backdrop2.jpg"
+        "+z": "assets/backdrops/backdrop2.jpg"
       }
     }
   ],
@@ -202,45 +202,34 @@
   "screenSources": {
     "display": {
       "label": "Display video",
-      "video": "assets/display.mp4"
+      "video": "assets/screens/display.mp4"
     },
     "saw": {
       "label": "Wafer saw video",
-      "video": "assets/saw.mp4"
+      "video": "assets/screens/saw.mp4"
     },
     "img6": {
       "label": "Dashboard image (6.jpeg)",
-      "image": "assets/6.jpeg"
+      "image": "assets/screens/6.jpeg"
     },
     "img3": {
       "label": "Screen image (3.jpg)",
-      "image": "assets/3.jpg"
+      "image": "assets/screens/3.jpg"
     },
     "twin": {
       "label": "UNYSIS digital twin",
-      "image": "assets/digitaltwin.jpg"
+      "image": "assets/screens/digitaltwin.jpg"
     },
     "img4": {
       "label": "Portrait panel (4.jpeg)",
-      "image": "assets/4.jpeg"
+      "image": "assets/screens/4.jpeg"
     },
     "img5": {
       "label": "Portrait panel (5.jpeg)",
-      "image": "assets/5.jpeg"
+      "image": "assets/screens/5.jpeg"
     }
   },
   "graphicSources": {},
-  "queues": [
-    {
-      "poles": [
-        "qp-1",
-        "qp-2",
-        "qp-3",
-        "qp-4"
-      ],
-      "closed": true
-    }
-  ],
   "groups": [
     [
       "booth",
@@ -256,6 +245,9 @@
       "box-3",
       "box-4",
       "console-1",
+      "console-tv-1",
+      "console-tv-2",
+      "console-tv-3",
       "tv-1"
     ],
     [
@@ -353,40 +345,68 @@
     },
     {
       "id": "console-1",
-      "name": "Control console (3 × 43\" TV wall)",
+      "name": "Control console (banner + poles)",
       "icon": "console",
       "model": "console",
       "at": {
         "x": 5.4,
         "z": 1.5,
         "ry": -1.5708
+      }
+    },
+    {
+      "id": "console-tv-1",
+      "name": "43\" TV on post 1",
+      "icon": "tv",
+      "model": "tv-43-post",
+      "parent": "console-1",
+      "free": true,
+      "at": {
+        "x": -0.9192,
+        "z": 0.4454,
+        "ry": 2.4435
       },
-      "screens": [
-        {
-          "role": "screen0",
-          "label": "Left TV",
-          "default": "saw",
-          "mirror": true,
-          "intensity": 0.5,
-          "roughness": 0.22
-        },
-        {
-          "role": "screen1",
-          "label": "Centre TV",
-          "default": "img6",
-          "mirror": true,
-          "intensity": 0.45,
-          "roughness": 0.25
-        },
-        {
-          "role": "screen2",
-          "label": "Right TV",
-          "default": "img3",
-          "mirror": true,
-          "intensity": 0.45,
-          "roughness": 0.25
-        }
-      ]
+      "screen": {
+        "default": "saw",
+        "intensity": 0.5,
+        "roughness": 0.22
+      }
+    },
+    {
+      "id": "console-tv-2",
+      "name": "43\" TV on post 2",
+      "icon": "tv",
+      "model": "tv-43-post",
+      "parent": "console-1",
+      "free": true,
+      "at": {
+        "x": 0.0,
+        "z": 0.78,
+        "ry": 3.1416
+      },
+      "screen": {
+        "default": "img6",
+        "intensity": 0.45,
+        "roughness": 0.25
+      }
+    },
+    {
+      "id": "console-tv-3",
+      "name": "43\" TV on post 3",
+      "icon": "tv",
+      "model": "tv-43-post",
+      "parent": "console-1",
+      "free": true,
+      "at": {
+        "x": 0.9192,
+        "z": 0.4454,
+        "ry": 3.8397
+      },
+      "screen": {
+        "default": "img3",
+        "intensity": 0.45,
+        "roughness": 0.25
+      }
     },
     {
       "id": "table-a",
@@ -441,50 +461,6 @@
         "roughness": 0.22
       },
       "parent": "table-b"
-    },
-    {
-      "id": "qp-1",
-      "name": "Barrier pole 1",
-      "icon": "pole",
-      "model": "queue-pole",
-      "at": {
-        "x": 4.6,
-        "z": 0.8,
-        "ry": 0
-      }
-    },
-    {
-      "id": "qp-2",
-      "name": "Barrier pole 2",
-      "icon": "pole",
-      "model": "queue-pole",
-      "at": {
-        "x": 5.2,
-        "z": 1.0,
-        "ry": 0
-      }
-    },
-    {
-      "id": "qp-3",
-      "name": "Barrier pole 3",
-      "icon": "pole",
-      "model": "queue-pole",
-      "at": {
-        "x": 5.2,
-        "z": 2.0,
-        "ry": 0
-      }
-    },
-    {
-      "id": "qp-4",
-      "name": "Barrier pole 4",
-      "icon": "pole",
-      "model": "queue-pole",
-      "at": {
-        "x": 4.6,
-        "z": 2.2,
-        "ry": 0
-      }
     },
     {
       "id": "display-2",
@@ -543,8 +519,53 @@
         "ry": 7.854
       },
       "hologram": {
-        "image": "assets/operator.jpeg",
-        "video": "assets/operator.mp4"
+        "image": "assets/screens/operator.jpeg",
+        "video": "assets/screens/operator.mp4"
+      },
+      "barrier": {
+        "model": "queue-pole",
+        "count": 4,
+        "min": 2,
+        "max": 4,
+        "closed": true,
+        "poles": [
+          {
+            "id": "qp-1",
+            "name": "Barrier pole 1",
+            "seq": 0,
+            "at": {
+              "x": 0.7,
+              "z": -0.2
+            }
+          },
+          {
+            "id": "qp-2",
+            "name": "Barrier pole 2",
+            "seq": 1,
+            "at": {
+              "x": 0.5,
+              "z": 0.4
+            }
+          },
+          {
+            "id": "qp-3",
+            "name": "Barrier pole 3",
+            "seq": 2,
+            "at": {
+              "x": -0.5,
+              "z": 0.4
+            }
+          },
+          {
+            "id": "qp-4",
+            "name": "Barrier pole 4",
+            "seq": 3,
+            "at": {
+              "x": -0.7,
+              "z": -0.2
+            }
+          }
+        ]
       }
     }
   ],
@@ -616,28 +637,32 @@
       "ry": 1.0472
     },
     "qp-1": {
-      "x": 4.6,
+      "x": 0.7,
       "y": 0,
-      "z": 0.8,
-      "ry": 0
+      "z": -0.2,
+      "ry": 0,
+      "local": true
     },
     "qp-2": {
-      "x": 5.2,
+      "x": 0.5,
       "y": 0,
-      "z": 1.0,
-      "ry": 0
+      "z": 0.4,
+      "ry": 0,
+      "local": true
     },
     "qp-3": {
-      "x": 5.2,
+      "x": -0.5,
       "y": 0,
-      "z": 2.0,
-      "ry": 0
+      "z": 0.4,
+      "ry": 0,
+      "local": true
     },
     "qp-4": {
-      "x": 4.6,
+      "x": -0.7,
       "y": 0,
-      "z": 2.2,
-      "ry": 0
+      "z": -0.2,
+      "ry": 0,
+      "local": true
     },
     "display-2": {
       "x": 5.8,
@@ -661,7 +686,8 @@
       "x": 4.8,
       "y": 0,
       "z": 1.5,
-      "ry": 7.854
+      "ry": 7.854,
+      "barrier": 4
     }
   }
 }

@@ -6,7 +6,7 @@ projects; each booth is described in a JSON file and its furniture are shared GL
 ## Usage
 
 Open the app, pick a project on the start screen (or go straight to `index.html#/japan2026`,
-`index.html#/booth-6x3`). The grid button at the top left returns to the project list.
+`index.html#/semicon-kl2026`). The grid button at the top left returns to the project list.
 
 - **Click** an item (in the 3D view or the Items list) to select it; drag the selected item to move it,
   **Shift + drag** to rotate (15° snap). Light bulbs move in X / Y, wall posters slide along their wall,
@@ -27,7 +27,7 @@ No build step. Serve the folder (the app loads JSON + GLB files with `fetch`):
 python3 -m http.server 8000
 ```
 
-then visit <http://localhost:8000>. `japan2026.html` still works as a link; it redirects to `#/japan2026`.
+then visit <http://localhost:8000>.
 
 ## Files
 
@@ -38,6 +38,10 @@ then visit <http://localhost:8000>. `japan2026.html` still works as a link; it r
 | `projects/index.json` | Project list for the start screen |
 | `projects/<id>.json` | One booth: room, walls, fascia, lights, views, screens, graphics, items, default layout |
 | `assets/models/*.glb` + `manifest.json` | Shared furniture models + their footprint |
+| `assets/screens/` | Screen content (videos, images) and the hologram video |
+| `assets/posters/` | Poster graphics (A0) |
+| `assets/backdrops/` | Backdrop banner graphics and wall backdrops |
+| `assets/concepts/index.html` | Contact sheet of the poster + backdrop concepts |
 | `tools/models/` | Model source (`factories.js`) and the GLB build (`build.py`) |
 
 To rebuild the GLB models after changing `tools/models/factories.js`:

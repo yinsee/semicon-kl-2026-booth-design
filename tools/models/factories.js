@@ -601,7 +601,9 @@ export function facadeBox({ w = 0.91, d = 0.3048, h = 0.615, facadeH = 0, facade
   return { object: group, meta: { w, d, h } };
 }
 
-// Control console: semi-circular wall of 3 × 43" TVs (roles screen0..2) + curved banner on 2 poles.
+// Control console: curved "Virtual Operator with Ai" banner on 2 poles. Its 3 TVs are separate items
+// (postTV below) placed on an arc around the operator spot (origin z − 0.65).
+export const CONSOLE = { D: 2.4, opZ: -2.4 / 2 + 0.55, R_mon: 1.43, tvAngles: [-40, 0, 40] };
 function consoleBannerCanvas(mirrored) {
   const [c, g] = makeCanvas(2048, 256);
   g.fillStyle = '#0a1a3a';
@@ -617,31 +619,26 @@ function consoleBannerCanvas(mirrored) {
   g.fillText('VIRTUAL OPERATOR WITH Ai', c.width / 2, c.height / 2);
   return c;
 }
-export function consoleWall() {
-  const W = 2.6, D = 2.4, H = 2.2;
+// 43" TV (landscape) on a square support post behind it; screen (role 'screen') faces +Z.
+export function postTV({ mW = 0.952, mH = 0.536, centerY = 1.54, postBack = 0.12 } = {}) {
   const group = new THREE.Group();
   const frameMat = std({ color: 0x1a1c1f, roughness: 0.4, metalness: 0.7 });
+  const screen = tag(new THREE.Mesh(new THREE.BoxGeometry(mW, mH, 0.025), placeholder('screen')), { role: 'screen' });
+  screen.position.y = centerY;
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(mW + 0.04, mH + 0.04, 0.02), frameMat);
+  frame.position.set(0, centerY, -0.005);
+  const postH = centerY + mH / 2;
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, postH, 0.08), frameMat);
+  post.position.set(0, postH / 2, -postBack);
+  group.add(screen, frame, post);
+  return { object: group, meta: { w: +(mW + 0.04).toFixed(3), d: 0.2, h: +(centerY + mH / 2 + 0.02).toFixed(3) } };
+}
+export function consoleWall() {
+  const W = 2.6, D = CONSOLE.D, H = 2.2;
+  const group = new THREE.Group();
   const op = new THREE.Group();          // origin = operator position
-  op.position.set(0, 0, -D / 2 + 0.55);
+  op.position.set(0, 0, CONSOLE.opZ);
   group.add(op);
-  const R_wall = 1.55, R_mon = R_wall - 0.12;
-  const wallAngles = [-Math.PI * 40 / 180, 0, Math.PI * 40 / 180];
-  const mW = 0.952, mH = 0.536, tvCenterY = 1.54;
-  wallAngles.forEach((θ, i) => {
-    const mon = new THREE.Group();
-    const screen = tag(new THREE.Mesh(new THREE.BoxGeometry(mW, mH, 0.025), placeholder('screen')), { role: `screen${i}` });
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(mW + 0.04, mH + 0.04, 0.02), frameMat);
-    frame.position.z = -0.005;
-    mon.add(frame, screen);
-    mon.position.set(R_mon * Math.sin(θ), tvCenterY, R_mon * Math.cos(θ));
-    mon.rotation.y = θ + Math.PI;        // face the operator
-    op.add(mon);
-    const postH = tvCenterY + mH / 2;
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, postH, 0.08), frameMat);
-    post.position.set(R_wall * Math.sin(θ), postH / 2, R_wall * Math.cos(θ));
-    post.rotation.y = θ;
-    op.add(post);
-  });
   // "Virtual Operator with Ai" banner: 3000 chord × 540 tall, 152.4 sag, on two 1820 poles
   const bannerL = 3.0, bannerSag = 0.1524, bannerH = 0.54;
   const bannerR = ((bannerL / 2) ** 2 + bannerSag ** 2) / (2 * bannerSag);
@@ -664,32 +661,6 @@ export function consoleWall() {
   return { object: group, meta: { w: W, d: D, h: H } };
 }
 
-// Curved arc desk (not placed today; kept on purpose).
-export function arcDesk() {
-  const group = new THREE.Group();
-  const bodyMat = std({ color: 0x2b2f34, roughness: 0.65, metalness: 0.25 });
-  const topMat = std({ color: 0xe4e6e9, roughness: 0.45, metalness: 0.1 });
-  function annularShape(innerR, outerR, halfLeft, halfRight = halfLeft) {
-    const s = new THREE.Shape();
-    const a0 = -Math.PI / 2 - halfLeft, a1 = -Math.PI / 2 + halfRight;
-    s.moveTo(outerR * Math.cos(a0), outerR * Math.sin(a0));
-    s.absarc(0, 0, outerR, a0, a1, false);
-    s.lineTo(innerR * Math.cos(a1), innerR * Math.sin(a1));
-    s.absarc(0, 0, innerR, a1, a0, true);
-    s.closePath();
-    return s;
-  }
-  const deskShape = annularShape(0.89, 1.35, Math.PI * 20 / 180, Math.PI * 55 / 180);
-  const bodyGeom = new THREE.ExtrudeGeometry(deskShape, { depth: 0.7, bevelEnabled: false, curveSegments: 48 });
-  bodyGeom.rotateX(-Math.PI / 2);
-  const topGeom = new THREE.ExtrudeGeometry(deskShape, { depth: 0.04, bevelEnabled: false, curveSegments: 48 });
-  topGeom.rotateX(-Math.PI / 2);
-  const top = new THREE.Mesh(topGeom, topMat);
-  top.position.y = 0.7;
-  group.add(new THREE.Mesh(bodyGeom, bodyMat), top);
-  return { object: group, meta: { w: 1.6, d: 1.4, h: 0.74 } };
-}
-
 // PC: 21" monitor (role 'screen') on a stand + keyboard. Origin = desk top (place it on a table item).
 export function pc({ deskTop = 0 } = {}) {
   const group = new THREE.Group();
@@ -708,29 +679,6 @@ export function pc({ deskTop = 0 } = {}) {
   kb.position.set(0, deskTop + 0.02, 0.08);
   group.add(mon, stand, kb);
   return { object: group, meta: { w: 0.5, d: 0.35, h: +(deskTop + 0.10 + oH + 0.015).toFixed(3) } };
-}
-
-// Foldable table with a draped navy cloth (not placed today; kept on purpose).
-export function foldingTable() {
-  const W = 0.60, D = 0.60, H = 0.74, topT = 0.04;
-  const group = new THREE.Group();
-  const topMat = std({ color: 0x141416, roughness: 0.55, metalness: 0.15 });
-  const legMat = std({ color: 0xb0b3b8, roughness: 0.4, metalness: 0.6 });
-  const top = new THREE.Mesh(new THREE.BoxGeometry(W, topT, D), topMat);
-  top.position.y = H - topT / 2;
-  group.add(top);
-  const legH = H - topT, inset = 0.08;
-  for (const [lx, lz] of [[-W / 2 + inset, -D / 2 + inset], [W / 2 - inset, -D / 2 + inset], [W / 2 - inset, D / 2 - inset], [-W / 2 + inset, D / 2 - inset]]) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, legH, 12), legMat);
-    leg.position.set(lx, legH / 2, lz);
-    group.add(leg);
-  }
-  const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.02, D - 0.1), legMat);
-  hinge.position.set(0, H - topT - 0.01, 0);
-  const cloth = new THREE.Mesh(new THREE.BoxGeometry(W + 0.04, H, D + 0.04), std({ color: 0x0a1a3a, roughness: 0.9, metalness: 0 }));
-  cloth.position.set(0, H / 2, 0);
-  group.add(hinge, cloth);
-  return { object: group, meta: { w: W, d: D, h: H } };
 }
 
 // Display plinth (UNYSIS / BIOENERGY lettering) with a glass cover and a spinning product box.
@@ -809,7 +757,7 @@ export function human() {
 }
 
 // ============================================================================================
-// Variants written to assets/models/<name>.glb (only what the pages use, + kept spares)
+// Variants written to assets/models/<name>.glb (only what the projects use)
 // ============================================================================================
 export const VARIANTS = {
   // japan2026.html (also used by index.html where noted)
@@ -832,9 +780,8 @@ export const VARIANTS = {
   'facade-box':           () => facadeBox({ w: 0.91, d: 0.3048, h: 0.615, facadeH: 1.2 }),
   'white-box':            () => facadeBox({ w: 0.6, d: 0.6, h: 0.74 }),
   'console':              () => consoleWall(),
+  'tv-43-post':           () => postTV(),
   'pc':                   () => pc(),
   'display-box':          () => displayBox(),
   'human':                () => human(),
-  'arc-desk':             () => arcDesk(),
-  'folding-table':        () => foldingTable(),
 };

@@ -86,14 +86,14 @@ export function placeCameras(views) {
   C.controls.target.copy(C.center);
 }
 
-export function fitIsoFrustum() {
+function fitIsoFrustum() {
   const halfH = S.project?.views.iso?.halfH ?? 3;
   const halfW = halfH * (C.app.clientWidth || 1) / (C.app.clientHeight || 1);
   Object.assign(C.isoCamera, { left: -halfW, right: halfW, top: halfH, bottom: -halfH });
   C.isoCamera.updateProjectionMatrix();
 }
 
-export function bindControls(cam) {
+function bindControls(cam) {
   if (C.controls) C.controls.dispose();
   C.controls = new OrbitControls(cam, C.renderer.domElement);
   C.controls.target.copy(C.center);
@@ -121,13 +121,18 @@ export function setControlMode(mode) {
   if (!look && camera.fov !== 50) { camera.fov = 50; camera.updateProjectionMatrix(); }
 }
 
+// Make `cam` (perspective or iso) the active camera. Rebinding the controls also leaves
+// visitor look mode (orbit controls, normal lens).
+export function useCamera(cam) {
+  C.activeCamera = cam;
+  if (cam === C.isoCamera) fitIsoFrustum();
+  bindControls(cam);
+  C.renderPass.camera = C.outlinePass.renderCamera = cam;
+}
 // Switch between the perspective and the iso (orthographic) camera. Returns true when iso is on.
 export function toggleIsoCamera() {
   const turningOn = C.activeCamera === C.camera;
-  C.activeCamera = turningOn ? C.isoCamera : C.camera;
-  if (turningOn) fitIsoFrustum();
-  bindControls(C.activeCamera);   // also leaves visitor look mode (orbit controls, normal lens)
-  C.renderPass.camera = C.outlinePass.renderCamera = C.activeCamera;
+  useCamera(turningOn ? C.isoCamera : C.camera);
   return turningOn;
 }
 

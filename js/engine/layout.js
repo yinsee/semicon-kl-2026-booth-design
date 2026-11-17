@@ -1,11 +1,12 @@
 // Layout persistence (localStorage, one key per project) and undo.
-// Saved per item: { x, y, z, ry } + screen / screens, local (anchored), arm, locked, hidden, graphic.
+// Saved per item: { x, y, z, ry } + screen / screens, local (anchored), arm, locked, hidden, graphic,
+// barrier + barrierLoop (pole count and belt loop of an item with barrier poles).
 // With nothing saved the project's `defaultLayout` is used (that is what Reset goes back to).
 import { S } from './state.js';
 import { setScreenEntry, setGraphic } from './media.js';
-import { updateArm } from './items.js';
+import { updateArm, setBarrierCount, setBarrierLoop } from './items.js';
 import { drag } from './interact.js';
-import { showInfo, updateStatus } from './ui.js';
+import { showInfo, updateStatus, buildItemList } from './ui.js';
 
 const UNDO_LIMIT = 50;
 const storageKey = () => S.project.meta.storageKey;
@@ -37,6 +38,7 @@ export function saveLayout() {
     if (m.userData.locked) e.locked = true;
     if (!m.visible) e.hidden = true;
     if (m.userData.graphic) e.graphic = m.userData.graphic;
+    if (m.userData.barrier) { e.barrier = m.userData.barrier.count; e.barrierLoop = m.userData.barrier.closed; }
   }
   recordUndo(data);
   try { localStorage.setItem(storageKey(), JSON.stringify(data)); } catch {}
@@ -67,11 +69,19 @@ export function undo() {
   S.lastSavedJson = prevJson;                      // restoring is not a new change
   try { localStorage.setItem(storageKey(), prevJson); } catch {}
   syncUndoUi();
+  buildItemList();                                 // the barrier pole count may have changed
   if (S.infoObj) { const o = S.infoObj; S.infoObj = null; showInfo(o); } // rebuild panel with restored values
   else updateStatus();
 }
 
 function applyLayoutState(state) {
+  // Pole count first: it adds / removes poles from S.furniture
+  for (const m of [...S.furniture]) {
+    const n = state[m.userData.id]?.barrier;
+    if (m.userData.barrier && n && n !== m.userData.barrier.count) setBarrierCount(m, n);
+    const loop = state[m.userData.id]?.barrierLoop;
+    if (m.userData.barrier && loop !== undefined && loop !== m.userData.barrier.closed) setBarrierLoop(m, loop);
+  }
   for (const m of S.furniture) {
     const st = state[m.userData.id];
     if (!st) continue;

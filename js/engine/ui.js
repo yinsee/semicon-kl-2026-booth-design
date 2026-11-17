@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { C, LOOK_RADIUS, setControlMode, toggleIsoCamera } from './core.js';
 import { S } from './state.js';
-import { ARM_LIMITS, updateArm, findItem } from './items.js';
+import { ARM_LIMITS, updateArm, findItem, barrierOwner, setBarrierCount, setBarrierLoop } from './items.js';
 import { saveLayout, undo, clearLayout } from './layout.js';
 import { setScreenEntry, setGraphic } from './media.js';
 
@@ -63,7 +63,7 @@ export function showInfo(obj) {
     rows = [['Position X', `${mm(p.x)} mm`], ['Height', `${mm(p.y)} mm`]];
   } else {
     rows = [['Width', `${mm(w)} mm`], ['Depth', `${mm(d)} mm`], ['Height', `${mm(h)} mm`],
-            [obj.userData.parentId ? 'Position on table' : 'Position', `${mm(p.x)}, ${mm(p.z)} mm`],
+            [positionLabel(obj), `${mm(p.x)}, ${mm(p.z)} mm`],
             ['Rotation', `${deg}°`]];
   }
   const rowsHtml = rows.map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('');
@@ -119,7 +119,40 @@ export function showInfo(obj) {
     sel.onchange = () => { setScreenEntry(entry, sel.value); saveLayout(); };
     infoEl.append(labelRow(screens.length > 1 ? entry.label : 'Screen'), sel);
   }
+  const owner = barrierOwner(obj);
+  if (owner) {
+    // Barrier pole count (2..4): poles are added / removed and the belts re-joined automatically
+    const B = owner.userData.barrier;
+    const sel = document.createElement('select');
+    sel.title = 'Number of barrier poles';
+    for (let n = B.min; n <= B.max; n++) sel.add(new Option(`${n} poles`, n));
+    sel.value = B.count;
+    sel.onchange = () => {
+      setBarrierCount(owner, +sel.value);
+      saveLayout();
+      buildItemList();
+      const keep = S.furniture.includes(obj) ? obj : owner;   // a removed pole hands the panel to its owner
+      S.infoObj = null;
+      showInfo(keep);
+    };
+    infoEl.append(labelRow('Barrier poles'), sel);
+    // Loop the strap back to the first pole (3+ poles only)
+    const loopRow = document.createElement('label');
+    loopRow.className = 'row lock-row';
+    loopRow.title = B.count < 3 ? 'Needs 3 or more poles' : 'Join the last pole back to the first';
+    loopRow.innerHTML = `<span>Loop strap</span>
+      <span class="switch"><input type="checkbox" class="loop-toggle"><span class="slider"></span></span>`;
+    const loop = loopRow.querySelector('input');
+    loop.checked = B.closed;
+    loop.disabled = B.count < 3;
+    loop.onchange = () => { setBarrierLoop(owner, loop.checked); saveLayout(); };
+    infoEl.append(loopRow);
+  }
   updateStatus();
+}
+function positionLabel(obj) {
+  if (!obj.userData.parentId) return 'Position';
+  return obj.userData.freeOnParent ? 'Position (relative)' : 'Position on table';
 }
 function labelRow(text) {
   const el = document.createElement('div');
@@ -132,7 +165,7 @@ function syncLockToggle(obj) {
   if (t) { t.checked = !!obj.userData.locked; t.disabled = !!obj.userData.isBooth; }
   $('info').querySelectorAll('input[data-arm]').forEach(inp => { inp.disabled = !!obj.userData.locked; });
 }
-export function setVisible(obj, visible) {
+function setVisible(obj, visible) {
   if (obj.userData.isBooth) return;
   obj.visible = visible;                     // children (items on a counter / table) hide with it
   saveLayout();

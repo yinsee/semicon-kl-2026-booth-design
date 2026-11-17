@@ -39,7 +39,7 @@ function setPointerNDC(clientX, clientY) {
   pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 }
 
-export function pickFurniture(clientX, clientY) {
+function pickFurniture(clientX, clientY) {
   setPointerNDC(clientX, clientY);
   raycaster.setFromCamera(pointer, C.activeCamera);
   const hits = raycaster.intersectObjects(S.furniture.filter(f => f.visible), true).filter(h => {
@@ -65,7 +65,8 @@ function onMouseDown(e) {
   drag.obj = obj;
 
   if (obj.userData.parentId) {
-    // Anchored item: move (or Shift-rotate) on the parent's top, in the parent's local frame
+    // Anchored item: move (or Shift-rotate) on the parent's top (or the floor for barrier poles),
+    // in the parent's local frame
     const topY = obj.getWorldPosition(new THREE.Vector3()).y;
     drag.surfacePlane.set(new THREE.Vector3(0, 1, 0), -topY);
     raycaster.ray.intersectPlane(drag.surfacePlane, hitPoint);
@@ -142,15 +143,17 @@ function onMouseMove(e) {
 
   if (drag.mode.startsWith('surface')) {
     const o = drag.obj, local = o.parent.worldToLocal(hitPoint.clone());
-    const FINE = 0.01; // 10 mm steps on a table top
+    // Items on a table top: 10 mm steps, kept on the top. Free children (barrier poles): floor steps, anywhere.
+    const free = !!o.userData.freeOnParent;
+    const step = free ? SNAP : 0.01;
     if (drag.mode === 'surface-rotate') {
       const a = Math.atan2(local.x - o.position.x, local.z - o.position.z);
       o.rotation.y = Math.round((drag.startRotY + a - drag.startAngle) / ROT_SNAP) * ROT_SNAP;
     } else {
-      o.position.x = Math.round((local.x - grabOffset.x) / FINE) * FINE;
-      o.position.z = Math.round((local.z - grabOffset.z) / FINE) * FINE;
+      o.position.x = Math.round((local.x - grabOffset.x) / step) * step;
+      o.position.z = Math.round((local.z - grabOffset.z) / step) * step;
     }
-    clampToParentTop(o);
+    if (!free) clampToParentTop(o);
     refreshInfo(o);
     return;
   }

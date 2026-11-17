@@ -1,12 +1,13 @@
 // SPA router: #/ → project menu, #/<id> → booth editor for projects/<id>.json.
 import { initEngine, openProject, closeProject } from './engine/engine.js';
+import { fetchJson } from './engine/net.js';
 
 const cardsEl = document.getElementById('menu-cards');
 let catalog = null;
 let openId = null;
 
 async function loadCatalog() {
-  catalog ??= (await fetch('projects/index.json', { cache: 'no-cache' }).then(r => r.json())).projects;
+  catalog ??= (await fetchJson('projects/index.json')).projects;
   return catalog;
 }
 
@@ -34,7 +35,7 @@ async function showProject(id) {
   if (openId === id) return;
   openId = id;
   document.body.classList.remove('menu-open');
-  const project = await fetch(entry.file, { cache: 'no-cache' }).then(r => r.json());
+  const project = await fetchJson(entry.file);
   if (openId !== id) return;          // user navigated away while loading
   await openProject(project);
 }

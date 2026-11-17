@@ -2,7 +2,7 @@
 // Open order matters (same as the original single-file editor):
 //   layout → scene + booth shell → items (parents before children) → locked / hidden → clamp
 //   → saveLayout() baseline (no undo entry) → camera + view → Items list + empty Properties.
-import { C, initCore, setScene, placeCameras, bindControls } from './core.js';
+import { C, initCore, setScene, placeCameras, useCamera } from './core.js';
 import { S, resetState } from './state.js';
 import { loadManifest } from './models.js';
 import { buildScene, disposeScene } from './shell.js';
@@ -38,7 +38,7 @@ export async function openProject(project) {
   saveLayout();          // seeds the undo baseline
   syncUndoUi();
 
-  if (C.activeCamera !== C.camera) { C.activeCamera = C.camera; bindControls(C.camera); C.renderPass.camera = C.outlinePass.renderCamera = C.camera; }
+  if (C.activeCamera !== C.camera) useCamera(C.camera);   // a new project always starts in perspective
   placeCameras(project.views);
   setScene(scene);
   applyProjectUi(project);

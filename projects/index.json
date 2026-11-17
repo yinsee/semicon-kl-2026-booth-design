@@ -8,11 +8,11 @@
       "thumb": "assets/thumbs/japan2026.jpg"
     },
     {
-      "id": "booth-6x3",
-      "file": "projects/booth-6x3.json",
+      "id": "semicon-kl2026",
+      "file": "projects/semicon-kl2026.json",
       "title": "Semicon KL 2026",
       "subtitle": "SEMICON Southeast Asia KL 2026 · 6 × 3 m booth",
-      "thumb": "assets/thumbs/booth-6x3.jpg"
+      "thumb": "assets/thumbs/semicon-kl2026.jpg"
     }
   ]
 }

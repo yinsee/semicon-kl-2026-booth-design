@@ -6,8 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Single-page WebGL booth editor (Three.js r161 from jsDelivr via an import map, ES modules, no build
 step, no package manager). `index.html` shows a project menu; `#/<id>` opens `projects/<id>.json` in the
-editor. The editor UI and behaviour are the former `japan2026.html` editor ("Japan UI" is the standard).
-`japan2026.html` is only a redirect to `index.html#/japan2026`.
+editor. The editor UI and behaviour come from the former single-file Japan 2026 editor ("Japan UI" is the standard).
 
 ## Running
 
@@ -30,6 +29,7 @@ js/engine/models.js     manifest.json + GLB cache; addModel(root, name, onReady(
 js/engine/items.js      items from JSON: lights, floor items, wall items, anchored items (placeOnSurface),
                         monitor arm (updateArm), queue belts (updateQueueStraps)
 js/engine/media.js      screen / graphic / hologram textures + video elements; canvas textures (carpet, fascia)
+js/engine/net.js        fetch with timeout + retry (JSON uncached, GLB revalidated)
 js/engine/layout.js     localStorage load / save, undo, applyLayoutState
 js/engine/interact.js   picking + drag modes (move, rotate, light, wall, surface, surface-rotate, swivel)
 js/engine/ui.js         Items list, Properties pane, status bar, panes, views, toggles, reset
@@ -49,12 +49,17 @@ hemi, sun) · `floor` (carpet style `mid-grey` | `charcoal`, tint, bump) · `wal
 `faces` → backdrop image per face `+x/-x/+y/-y/+z/-z`) · `fascias[]` (`logo-box` | `navy-plane`) · `poles[]` ·
 `reflections` (CubeCamera for `envmap` items) · `boothInfo` (Properties rows for the booth) · `guides` ·
 `views` (default, center, iso, persp/top/front positions, visitor item) · `screenSources` ·
-`graphicSources` (named sets; `{ image }` or `{ canvas }`) · `queues` (pole id chains, `closed`) ·
+`graphicSources` (named sets; `{ image }` or `{ canvas }`) ·
 `groups` (Items pane sections; may include "booth" to share the booth shell section) · `items[]` · `defaultLayout` (used when localStorage is empty / after Reset).
 
 Item fields: `id`, `name`, `icon` (key in `ICONS`, ui.js), `model`, `at {x,z,ry}`, `parent`, `light`, `wall`,
-`graphic`, `screen` / `screens[]`, `arm`, `hologram`, `spin`, `spotlight`, `envmap` (see items.js header).
-Saved layout per item: `{ x, y, z, ry }` + `screen` / `screens`, `local`, `arm`, `locked`, `hidden`, `graphic`.
+`graphic`, `screen` / `screens[]`, `arm`, `hologram`, `spin`, `spotlight`, `envmap`, `barrier` (poles that belong
+to the item, move with it, drag freely, count min..max, joined by belts) — see items.js header.
+Saved layout per item: `{ x, y, z, ry }` + `screen` / `screens`, `local`, `arm`, `locked`, `hidden`, `graphic`, `barrier`.
+
+### Assets
+`assets/screens/` (screen + hologram media) · `assets/posters/` · `assets/backdrops/` (banner prints + wall
+backdrops) · `assets/models/` · `assets/thumbs/` (menu cards). Project JSON refers to them by path.
 
 ### Models (`assets/models/`)
 Furniture geometry lives only in `tools/models/factories.js` (pure builders → `VARIANTS`). Parts the page

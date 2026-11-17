@@ -179,23 +179,23 @@
   "screenSources": {
     "display": {
       "label": "Display video",
-      "video": "assets/display.mp4"
+      "video": "assets/screens/display.mp4"
     },
     "saw": {
       "label": "Wafer saw video",
-      "video": "assets/saw.mp4"
+      "video": "assets/screens/saw.mp4"
     },
     "img6": {
       "label": "Dashboard image (6.jpeg)",
-      "image": "assets/6.jpeg"
+      "image": "assets/screens/6.jpeg"
     },
     "img3": {
       "label": "Screen image (3.jpg)",
-      "image": "assets/3.jpg"
+      "image": "assets/screens/3.jpg"
     },
     "twin": {
       "label": "UNYSIS digital twin",
-      "image": "assets/digitaltwin.jpg"
+      "image": "assets/screens/digitaltwin.jpg"
     }
   },
   "graphicSources": {
@@ -206,261 +206,252 @@
       },
       "A01": {
         "label": "A01 — Andon Watch",
-        "image": "assets/concepts/v2/A01.jpg"
+        "image": "assets/posters/A01.jpg"
       },
       "A02": {
         "label": "A02 — Andon Watch",
-        "image": "assets/concepts/v2/A02.jpg"
+        "image": "assets/posters/A02.jpg"
       },
       "A03": {
         "label": "A03 — Andon Watch",
-        "image": "assets/concepts/v2/A03.jpg"
+        "image": "assets/posters/A03.jpg"
       },
       "A04": {
         "label": "A04 — Andon Watch",
-        "image": "assets/concepts/v2/A04.jpg"
+        "image": "assets/posters/A04.jpg"
       },
       "A05": {
         "label": "A05 — Andon Watch",
-        "image": "assets/concepts/v2/A05.jpg"
+        "image": "assets/posters/A05.jpg"
       },
       "A06": {
         "label": "A06 — Andon Watch",
-        "image": "assets/concepts/v2/A06.jpg"
+        "image": "assets/posters/A06.jpg"
       },
       "A07": {
         "label": "A07 — Andon Watch",
-        "image": "assets/concepts/v2/A07.jpg"
+        "image": "assets/posters/A07.jpg"
       },
       "A08": {
         "label": "A08 — Andon Watch",
-        "image": "assets/concepts/v2/A08.jpg"
+        "image": "assets/posters/A08.jpg"
       },
       "A09": {
         "label": "A09 — Andon Watch",
-        "image": "assets/concepts/v2/A09.jpg"
+        "image": "assets/posters/A09.jpg"
       },
       "A10": {
         "label": "A10 — Andon Watch",
-        "image": "assets/concepts/v2/A10.jpg"
+        "image": "assets/posters/A10.jpg"
       },
       "A11": {
         "label": "A11 — Andon Watch",
-        "image": "assets/concepts/v2/A11.jpg"
+        "image": "assets/posters/A11.jpg"
       },
       "A12": {
         "label": "A12 — Andon Watch",
-        "image": "assets/concepts/v2/A12.jpg"
+        "image": "assets/posters/A12.jpg"
       },
       "A13": {
         "label": "A13 — Andon Watch",
-        "image": "assets/concepts/v2/A13.jpg"
+        "image": "assets/posters/A13.jpg"
       },
       "A14": {
         "label": "A14 — Andon Watch",
-        "image": "assets/concepts/v2/A14.jpg"
+        "image": "assets/posters/A14.jpg"
       },
       "A15": {
         "label": "A15 — Andon Watch",
-        "image": "assets/concepts/v2/A15.jpg"
+        "image": "assets/posters/A15.jpg"
       },
       "A16": {
         "label": "A16 — Andon Watch",
-        "image": "assets/concepts/v2/A16.jpg"
+        "image": "assets/posters/A16.jpg"
       },
       "A17": {
         "label": "A17 — Andon Watch",
-        "image": "assets/concepts/v2/A17.jpg"
+        "image": "assets/posters/A17.jpg"
       },
       "A18": {
         "label": "A18 — Andon Watch",
-        "image": "assets/concepts/v2/A18.jpg"
+        "image": "assets/posters/A18.jpg"
       },
       "A19": {
         "label": "A19 — Andon Watch",
-        "image": "assets/concepts/v2/A19.jpg"
+        "image": "assets/posters/A19.jpg"
       },
       "A20": {
         "label": "A20 — Andon Watch",
-        "image": "assets/concepts/v2/A20.jpg"
+        "image": "assets/posters/A20.jpg"
       },
       "U01": {
         "label": "U01 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U01.jpg"
+        "image": "assets/posters/U01.jpg"
       },
       "U02": {
         "label": "U02 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U02.jpg"
+        "image": "assets/posters/U02.jpg"
       },
       "U03": {
         "label": "U03 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U03.jpg"
+        "image": "assets/posters/U03.jpg"
       },
       "U04": {
         "label": "U04 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U04.jpg"
+        "image": "assets/posters/U04.jpg"
       },
       "U05": {
         "label": "U05 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U05.jpg"
+        "image": "assets/posters/U05.jpg"
       },
       "U06": {
         "label": "U06 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U06.jpg"
+        "image": "assets/posters/U06.jpg"
       },
       "U07": {
         "label": "U07 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U07.jpg"
+        "image": "assets/posters/U07.jpg"
       },
       "U08": {
         "label": "U08 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U08.jpg"
+        "image": "assets/posters/U08.jpg"
       },
       "U09": {
         "label": "U09 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U09.jpg"
+        "image": "assets/posters/U09.jpg"
       },
       "U10": {
         "label": "U10 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U10.jpg"
+        "image": "assets/posters/U10.jpg"
       },
       "U11": {
         "label": "U11 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U11.jpg"
+        "image": "assets/posters/U11.jpg"
       },
       "U12": {
         "label": "U12 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U12.jpg"
+        "image": "assets/posters/U12.jpg"
       },
       "U13": {
         "label": "U13 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U13.jpg"
+        "image": "assets/posters/U13.jpg"
       },
       "U14": {
         "label": "U14 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U14.jpg"
+        "image": "assets/posters/U14.jpg"
       },
       "U15": {
         "label": "U15 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U15.jpg"
+        "image": "assets/posters/U15.jpg"
       },
       "U16": {
         "label": "U16 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U16.jpg"
+        "image": "assets/posters/U16.jpg"
       },
       "U17": {
         "label": "U17 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U17.jpg"
+        "image": "assets/posters/U17.jpg"
       },
       "U18": {
         "label": "U18 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U18.jpg"
+        "image": "assets/posters/U18.jpg"
       },
       "U19": {
         "label": "U19 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U19.jpg"
+        "image": "assets/posters/U19.jpg"
       },
       "U20": {
         "label": "U20 — UNYSIS Edge AI Controller",
-        "image": "assets/concepts/v2/U20.jpg"
+        "image": "assets/posters/U20.jpg"
       }
     },
     "banners": {
       "original": {
         "label": "Original banner",
-        "image": "assets/japan2026-banner.jpg"
+        "image": "assets/backdrops/japan2026-banner.jpg"
       },
       "B01": {
         "label": "B01 — AI virtual operator",
-        "image": "assets/concepts/v2/B01.jpg"
+        "image": "assets/backdrops/B01.jpg"
       },
       "B02": {
         "label": "B02 — AI virtual operator",
-        "image": "assets/concepts/v2/B02.jpg"
+        "image": "assets/backdrops/B02.jpg"
       },
       "B03": {
         "label": "B03 — AI virtual operator",
-        "image": "assets/concepts/v2/B03.jpg"
+        "image": "assets/backdrops/B03.jpg"
       },
       "B04": {
         "label": "B04 — AI virtual operator",
-        "image": "assets/concepts/v2/B04.jpg"
+        "image": "assets/backdrops/B04.jpg"
       },
       "B05": {
         "label": "B05 — AI virtual operator",
-        "image": "assets/concepts/v2/B05.jpg"
+        "image": "assets/backdrops/B05.jpg"
       },
       "B06": {
         "label": "B06 — AI virtual operator",
-        "image": "assets/concepts/v2/B06.jpg"
+        "image": "assets/backdrops/B06.jpg"
       },
       "B07": {
         "label": "B07 — AI virtual operator",
-        "image": "assets/concepts/v2/B07.jpg"
+        "image": "assets/backdrops/B07.jpg"
       },
       "B08": {
         "label": "B08 — AI virtual operator",
-        "image": "assets/concepts/v2/B08.jpg"
+        "image": "assets/backdrops/B08.jpg"
       },
       "B09": {
         "label": "B09 — AI virtual operator",
-        "image": "assets/concepts/v2/B09.jpg"
+        "image": "assets/backdrops/B09.jpg"
       },
       "B10": {
         "label": "B10 — AI virtual operator",
-        "image": "assets/concepts/v2/B10.jpg"
+        "image": "assets/backdrops/B10.jpg"
       },
       "B11": {
         "label": "B11 — AI virtual operator",
-        "image": "assets/concepts/v2/B11.jpg"
+        "image": "assets/backdrops/B11.jpg"
       },
       "B12": {
         "label": "B12 — AI virtual operator",
-        "image": "assets/concepts/v2/B12.jpg"
+        "image": "assets/backdrops/B12.jpg"
       },
       "B13": {
         "label": "B13 — AI virtual operator",
-        "image": "assets/concepts/v2/B13.jpg"
+        "image": "assets/backdrops/B13.jpg"
       },
       "B14": {
         "label": "B14 — AI virtual operator",
-        "image": "assets/concepts/v2/B14.jpg"
+        "image": "assets/backdrops/B14.jpg"
       },
       "B15": {
         "label": "B15 — AI virtual operator",
-        "image": "assets/concepts/v2/B15.jpg"
+        "image": "assets/backdrops/B15.jpg"
       },
       "B16": {
         "label": "B16 — AI virtual operator",
-        "image": "assets/concepts/v2/B16.jpg"
+        "image": "assets/backdrops/B16.jpg"
       },
       "B17": {
         "label": "B17 — AI virtual operator",
-        "image": "assets/concepts/v2/B17.jpg"
+        "image": "assets/backdrops/B17.jpg"
       },
       "B18": {
         "label": "B18 — AI virtual operator",
-        "image": "assets/concepts/v2/B18.jpg"
+        "image": "assets/backdrops/B18.jpg"
       },
       "B19": {
         "label": "B19 — AI virtual operator",
-        "image": "assets/concepts/v2/B19.jpg"
+        "image": "assets/backdrops/B19.jpg"
       },
       "B20": {
         "label": "B20 — AI virtual operator",
-        "image": "assets/concepts/v2/B20.jpg"
+        "image": "assets/backdrops/B20.jpg"
       }
     }
   },
-  "queues": [
-    {
-      "poles": [
-        "qp-1",
-        "qp-2"
-      ],
-      "closed": false
-    }
-  ],
   "groups": [
     [
       "booth",
@@ -475,10 +466,14 @@
     [
       "tv-1",
       "tv-2",
-      "tv-3",
+      "tv-3"
+    ],
+    [
       "fan-1",
       "qp-1",
-      "qp-2"
+      "qp-2",
+      "qp-3",
+      "qp-4"
     ],
     [
       "counter-1",
@@ -564,8 +559,53 @@
         "z": 1.7
       },
       "hologram": {
-        "image": "assets/operator.jpeg",
-        "video": "assets/operator.mp4"
+        "image": "assets/screens/operator.jpeg",
+        "video": "assets/screens/operator.mp4"
+      },
+      "barrier": {
+        "model": "queue-pole",
+        "count": 2,
+        "min": 2,
+        "max": 4,
+        "closed": false,
+        "poles": [
+          {
+            "id": "qp-1",
+            "name": "Barrier pole 1",
+            "seq": 1,
+            "at": {
+              "x": -0.7,
+              "z": 0.3
+            }
+          },
+          {
+            "id": "qp-2",
+            "name": "Barrier pole 2",
+            "seq": 2,
+            "at": {
+              "x": 0.7,
+              "z": 0.3
+            }
+          },
+          {
+            "id": "qp-3",
+            "name": "Barrier pole 3",
+            "seq": 0,
+            "at": {
+              "x": -0.7,
+              "z": -0.3
+            }
+          },
+          {
+            "id": "qp-4",
+            "name": "Barrier pole 4",
+            "seq": 3,
+            "at": {
+              "x": 0.7,
+              "z": -0.3
+            }
+          }
+        ]
       }
     },
     {
@@ -591,26 +631,6 @@
         "sources": "banners",
         "default": "original",
         "roughness": 0.8
-      }
-    },
-    {
-      "id": "qp-1",
-      "name": "Barrier pole 1",
-      "icon": "pole",
-      "model": "queue-pole",
-      "at": {
-        "x": 1.05,
-        "z": 2.2
-      }
-    },
-    {
-      "id": "qp-2",
-      "name": "Barrier pole 2",
-      "icon": "pole",
-      "model": "queue-pole",
-      "at": {
-        "x": 1.95,
-        "z": 2.2
       }
     },
     {
@@ -796,7 +816,8 @@
       "y": 0,
       "z": 1.3,
       "ry": 0,
-      "locked": true
+      "locked": true,
+      "barrier": 2
     },
     "counter-1": {
       "x": 0.6,
@@ -814,17 +835,19 @@
       "graphic": "B01"
     },
     "qp-1": {
-      "x": 0.8,
+      "x": -0.7,
       "y": 0,
-      "z": 1.6,
+      "z": 0.3,
       "ry": 0,
+      "local": true,
       "locked": true
     },
     "qp-2": {
-      "x": 2.2,
+      "x": 0.7,
       "y": 0,
-      "z": 1.6,
+      "z": 0.3,
       "ry": 0,
+      "local": true,
       "locked": true
     },
     "unisys-1": {

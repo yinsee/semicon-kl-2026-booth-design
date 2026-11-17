@@ -3,14 +3,15 @@
 import * as THREE from 'three';
 import { C } from './core.js';
 import { S } from './state.js';
+import { DECAL } from './items.js';
 
 const videos = [];                 // <video> elements of the open project
-const screenTex = new Map();       // `${key}|${mirror}` → texture (shared by all screens with that content)
+const screenTex = new Map();       // key → texture (shared by all screens with that content)
 const graphicTex = new Map();      // image path / canvas name → texture
 
 const aniso = () => C.renderer.capabilities.getMaxAnisotropy();
 
-export function makeVideoElement(src) {
+function makeVideoElement(src) {
   const el = document.createElement('video');
   Object.assign(el, { src, loop: true, muted: true, playsInline: true, autoplay: true, preload: 'auto', crossOrigin: 'anonymous' });
   el.style.display = 'none';
@@ -24,44 +25,32 @@ export function makeVideoElement(src) {
 // ---- Screens (TVs, monitors, display panels) ----
 function screenSources() { return S.project.screenSources; }
 function defaultScreenKey() { return Object.keys(screenSources())[0]; }
-function mirrorU(tex) {
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.repeat.x = -1;
-  tex.offset.x = 1;
-  tex.needsUpdate = true;
-}
-function getScreenTexture(key, mirror) {
+function getScreenTexture(key) {
   if (!screenSources()[key]) key = defaultScreenKey();
-  const cacheKey = `${key}|${!!mirror}`;
-  let tex = screenTex.get(cacheKey);
+  let tex = screenTex.get(key);
   if (!tex) {
     const src = screenSources()[key];
-    if (src.video) {
-      tex = new THREE.VideoTexture(makeVideoElement(src.video));
-    } else {
-      const base = screenTex.get(`${key}|false`);
-      tex = base && mirror ? base.clone() : new THREE.TextureLoader().load(src.image);
-    }
+    tex = src.video ? new THREE.VideoTexture(makeVideoElement(src.video)) : new THREE.TextureLoader().load(src.image);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = aniso();
-    if (mirror) mirrorU(tex);       // monitor turned 180° toward the operator
-    screenTex.set(cacheKey, tex);
+    screenTex.set(key, tex);
   }
   return tex;
 }
-// One swappable screen on an item: { role, label, mat, key, mirror }. Registered on root.userData.screens.
+// One swappable screen on an item: { role, label, mat, key }. Registered on root.userData.screens.
 export function addScreen(root, cfg, savedKey) {
   const mat = new THREE.MeshStandardMaterial({
     roughness: cfg.roughness ?? 0.22, metalness: 0.1, emissive: 0xffffff, emissiveIntensity: cfg.intensity ?? 0.5,
+    ...DECAL,   // screen faces sit right on their frame / panel
   });
-  const entry = { role: cfg.role ?? 'screen', label: cfg.label ?? 'Screen', mat, mirror: !!cfg.mirror, key: null };
+  const entry = { role: cfg.role ?? 'screen', label: cfg.label ?? 'Screen', mat, key: null };
   (root.userData.screens ??= []).push(entry);
   setScreenEntry(entry, savedKey ?? cfg.default);
   return entry;
 }
 export function setScreenEntry(entry, key) {
   if (!screenSources()[key]) key = defaultScreenKey();
-  const tex = getScreenTexture(key, entry.mirror);
+  const tex = getScreenTexture(key);
   entry.mat.map = entry.mat.emissiveMap = tex;
   entry.mat.needsUpdate = true;
   entry.key = key;

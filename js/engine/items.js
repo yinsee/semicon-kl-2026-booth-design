@@ -6,19 +6,25 @@
 // Item JSON fields (all optional except id):
 //   model      GLB name in assets/models/          at        { x, z, ry } default placement
 //   parent     id of the item it stands on         light     { x, y, z, intensity } (point light + bulb)
+//   free       with parent: stand on the floor in the parent's frame (moves with it, drags anywhere)
 //   wall       { side: 'left'|'right', bottom }    graphic   { sources, default, roughness }
-//   screen     { default, intensity, roughness, mirror }   screens [{ role, label, default, mirror, … }]
+//   screen     { default, intensity, roughness }   screens [{ role, label, default, … }]
 //   arm        { swivel, a1, a2 }  (monitor arm)   hologram  { image, video }
 //   spin       rotate the 'spin' part 1°/s         spotlight { intensity, distance, angle, penumbra, decay, y, targetY }
 //   envmap     bind the live reflection to 'envmap' parts
+//   barrier    { model, count, min, max, closed, poles: [{ id, name, seq, at }] } — barrier poles that
+//              belong to this item: they move with it, can each be dragged freely on the floor, and are
+//              joined in `seq` order by red belts. `count` (min..max) poles are active; `closed` loops the
+//              belt back to the first pole. Saved as `barrier` (count) and `barrierLoop`.
 import * as THREE from 'three';
 import { S } from './state.js';
 import { addModel, modelMeta } from './models.js';
 import { addScreen, initGraphic, makeHologramMaterial } from './media.js';
 
-export const ARM = { L1: 0.18, L2: 0.16, POLE_H: 0.2 };
+const ARM = { L1: 0.18, L2: 0.16, POLE_H: 0.2 };
 export const ARM_LIMITS = { swivel: [-90, 90], a1: [-30, 60], a2: [-60, 45] }; // degrees
 const QUEUE_STRAP_Y = 0.92; // belt height (just below the top finial)
+export const DECAL = { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 };
 
 export function findItem(id) { return S.furniture.find(f => f.userData.id === id); }
 
@@ -27,12 +33,10 @@ export function buildItems(project) {
     S.names.set(def.id, def.name ?? def.id);
     S.icons.set(def.id, def.icon);
     if (def.light) addPointLight(def);
-    else buildModelItem(def);
-  }
-  for (const q of project.queues ?? []) {
-    const poles = q.poles.map(findItem).filter(Boolean);
-    const n = q.closed ? poles.length : poles.length - 1;
-    for (let i = 0; i < n; i++) S.queues.push({ a: poles[i], b: poles[(i + 1) % poles.length], strap: makeQueueStrap() });
+    else {
+      const root = buildModelItem(def);
+      if (def.barrier) buildBarrier(root, def);
+    }
   }
 }
 
@@ -70,7 +74,8 @@ function buildModelItem(def) {
   if (def.screen) addScreen(root, { role: 'screen', ...def.screen }, saved?.screen);
   (def.screens ?? []).forEach((cfg, i) => addScreen(root, cfg, saved?.screens?.[i]));
   if (def.graphic) {
-    const mat = new THREE.MeshStandardMaterial({ roughness: def.graphic.roughness ?? 0.8 });
+    // Print sits a hair in front of its board: depth offset prevents z-fighting at a distance
+    const mat = new THREE.MeshStandardMaterial({ roughness: def.graphic.roughness ?? 0.8, ...DECAL });
     initGraphic(root, mat, S.project.graphicSources[def.graphic.sources], saved?.graphic ?? def.graphic.default);
   }
   if (def.arm) {
@@ -88,7 +93,14 @@ function buildModelItem(def) {
 
   // Placement (same rules as before the JSON move)
   if (def.wall) placeOnWall(root, def, saved);
-  else if (def.parent) {
+  else if (def.parent && def.free) {
+    // Free child (e.g. the console TVs): on the floor, moves with its parent, dragged anywhere
+    const parent = findItem(def.parent);
+    Object.assign(root.userData, { parentId: parent.userData.id, freeOnParent: true });
+    setFloorPose(root, parent, saved, at);
+    parent.add(root);
+    S.furniture.push(root);
+  } else if (def.parent) {
     const parent = findItem(def.parent);
     if (def.arm) root.userData.lockZ = -parent.userData.d / 2 + meta.clampZ; // clamp on the back edge; slides along it only
     placeOnSurface(root, { id: def.id, x: at.x ?? 0, z: at.z ?? 0, ry: def.arm ? 0 : (at.ry ?? 0), parent });
@@ -141,7 +153,7 @@ function placeOnWall(root, def, saved) {
 // --- Desktop items: sit on a parent's top (e.g. the counter) ---
 // x/z/ry are in the parent's local frame, y is the parent's top (userData.h); the item follows the
 // parent when it moves or rotates. Drag keeps it on the parent's top (see 'surface' drag mode).
-export function placeOnSurface(group, { id, x, z, ry = 0, parent }) {
+function placeOnSurface(group, { id, x, z, ry = 0, parent }) {
   const saved = S.savedLayout[id];
   group.userData.parentId = parent.userData.id;
   parent.add(group);
@@ -190,7 +202,93 @@ export function updateArm(group) {
   group.userData.h = headY + group.userData.screenH / 2;
 }
 
-// --- Barrier belts: one unit-length box per pole pair, stretched between the poles every frame ---
+// --- Barrier poles (children of their owner item, e.g. the 3D fan) + red belts ---
+// All pole objects are built once; setBarrierCount() attaches the first `count` of them to the owner
+// (and to S.furniture) and detaches the rest. Poles are free on the floor in the owner's frame.
+function buildBarrier(owner, def) {
+  const cfg = def.barrier;
+  const model = cfg.model ?? 'queue-pole';
+  const meta = modelMeta(model);
+  const poles = cfg.poles.map((p, i) => {
+    S.names.set(p.id, p.name ?? p.id);
+    S.icons.set(p.id, 'pole');
+    const pole = new THREE.Group();
+    pole.name = p.id;
+    pole.userData = { id: p.id, w: meta.w, d: meta.d, h: meta.h, draggable: true,
+                      parentId: def.id, freeOnParent: true, seq: p.seq ?? i };
+    setFloorPose(pole, owner, S.savedLayout[p.id], p.at);
+    addModel(pole, model);
+    return pole;
+  });
+  const min = cfg.min ?? 2, max = cfg.max ?? poles.length;
+  const saved = S.savedLayout[def.id];
+  owner.userData.barrier = { poles, min, max, closed: saved?.barrierLoop ?? !!cfg.closed, count: 0 };
+  setBarrierCount(owner, saved?.barrier ?? cfg.count ?? min);
+}
+
+// Pose of a free child (on the floor, in its parent's frame): saved local pose, or a layout saved
+// before it belonged to the parent (world → parent frame, once), or the default `at`.
+function setFloorPose(obj, parent, saved, at) {
+  if (saved?.local) {
+    obj.position.set(saved.x, 0, saved.z);
+    obj.rotation.y = saved.ry ?? 0;
+  } else if (saved) {
+    parent.updateMatrixWorld(true);
+    const v = parent.worldToLocal(new THREE.Vector3(saved.x, 0, saved.z));
+    obj.position.set(v.x, 0, v.z);
+    obj.rotation.y = (saved.ry ?? 0) - parent.rotation.y;
+  } else {
+    obj.position.set(at?.x ?? 0, 0, at?.z ?? 0);
+    obj.rotation.y = at?.ry ?? 0;
+  }
+}
+
+export function barrierOwner(obj) {
+  if (obj?.userData.barrier) return obj;
+  if (obj?.userData.freeOnParent && obj.parent?.userData.barrier) return obj.parent;
+  return null;
+}
+
+export function setBarrierCount(owner, count) {
+  const B = owner.userData.barrier;
+  B.count = THREE.MathUtils.clamp(Math.round(count), B.min, B.max);
+  B.poles.forEach((pole, i) => {
+    const active = i < B.count;
+    const listed = S.furniture.includes(pole);
+    if (active && !listed) {
+      owner.add(pole);
+      const at = S.furniture.indexOf(owner) + 1 + B.poles.slice(0, i).filter(p => S.furniture.includes(p)).length;
+      S.furniture.splice(at, 0, pole);
+    } else if (!active && listed) {
+      owner.remove(pole);
+      S.furniture.splice(S.furniture.indexOf(pole), 1);
+      if (S.infoObj === pole) S.infoObj = null;
+      if (S.hoverObj === pole) S.hoverObj = null;
+    }
+  });
+  rebuildBelts(owner);
+}
+
+// Loop the belt (last pole back to the first) or leave it open. Needs 3 or more poles.
+export function setBarrierLoop(owner, closed) {
+  owner.userData.barrier.closed = !!closed;
+  rebuildBelts(owner);
+}
+
+// Belts: active poles joined in `seq` order; closed loop only with 3 or more poles
+function rebuildBelts(owner) {
+  const B = owner.userData.barrier;
+  for (const q of S.queues.filter(q => q.owner === owner)) {
+    S.scene.remove(q.strap);
+    q.strap.geometry.dispose();
+    q.strap.material.dispose();
+  }
+  S.queues = S.queues.filter(q => q.owner !== owner);
+  const chain = B.poles.slice(0, B.count).sort((a, b) => a.userData.seq - b.userData.seq);
+  const n = B.closed && chain.length >= 3 ? chain.length : chain.length - 1;
+  for (let i = 0; i < n; i++) S.queues.push({ owner, a: chain[i], b: chain[(i + 1) % chain.length], strap: makeQueueStrap() });
+}
+
 function makeQueueStrap() {
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(1, 0.05, 0.012),
@@ -201,12 +299,20 @@ function makeQueueStrap() {
   S.scene.add(mesh);
   return mesh;
 }
+function shown(o) {
+  for (; o; o = o.parent) if (!o.visible) return false;
+  return true;
+}
+const _pa = new THREE.Vector3(), _pb = new THREE.Vector3();
+// Each belt is a unit-length box stretched between its two poles (world positions) every frame
 export function updateQueueStraps() {
   for (const { a, b, strap } of S.queues) {
-    const pa = a.position, pb = b.position;
-    const dx = pb.x - pa.x, dz = pb.z - pa.z;
-    strap.position.set((pa.x + pb.x) / 2, QUEUE_STRAP_Y, (pa.z + pb.z) / 2);
+    a.getWorldPosition(_pa);
+    b.getWorldPosition(_pb);
+    const dx = _pb.x - _pa.x, dz = _pb.z - _pa.z;
+    strap.position.set((_pa.x + _pb.x) / 2, QUEUE_STRAP_Y, (_pa.z + _pb.z) / 2);
     strap.scale.x = Math.max(Math.hypot(dx, dz), 0.001);
     strap.rotation.y = -Math.atan2(dz, dx);
+    strap.visible = shown(a) && shown(b);
   }
 }
